@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Quiz | Carnet</title>
+    <link rel="stylesheet" href="/quiz.css">
+</head>
+<body>
+    <div class="column">
+        <header class="topbar">
+            <span class="brand">Carnet</span>
+            <strong id="quiz-title">Quiz</strong>
+            <span class="status"><span id="progress"></span> <span id="score"></span></span>
+        </header>
+
+        <p id="message" class="message" role="alert" hidden></p>
+
+        <form id="start" class="start" hidden>
+            <label for="name">Votre prénom et votre nom</label>
+            <input id="name" name="name" autocomplete="name" required maxlength="60">
+            <p class="meta">Votre nom et vos réponses sont enregistrés pour le suivi du cours. Seul le formateur les voit.</p>
+            <button class="button">Commencer</button>
+        </form>
+
+        <main id="question-card" hidden>
+            <div class="question-head">
+                <p id="meta" class="meta"></p>
+                <p id="timer" class="timer" hidden></p>
+            </div>
+            <h1 id="question" class="prompt" tabindex="-1"></h1>
+            <div id="options" class="options"></div>
+            <p id="hint" class="hint" hidden></p>
+            <div id="feedback" class="feedback" aria-live="polite"></div>
+            <div class="controls">
+                <button id="hint-btn" class="button" type="button">Indice <kbd>H</kbd></button>
+                <button id="next-btn" class="button" type="button" hidden>Suivant <kbd>Entrée</kbd></button>
+            </div>
+            <p class="kbd-help">Clavier : A à D pour répondre, H pour l'indice, Entrée pour la suite.</p>
+        </main>
+
+        <section id="results" hidden></section>
+    </div>
+
+    <script src="/quiz.js" type="module"></script>
+</body>
+</html>

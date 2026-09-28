@@ -1,6 +1,6 @@
 // Pages du formateur : lancer un quiz, l'ouvrir et le fermer, suivre et noter les réponses, importer un quiz.
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { sql, readQuiz, normalize, validate, saveQuiz, quizId, isDone, questionScore, timeLeft, plain, SKIP } from './lib.js';
+import { sql, readQuiz, normalize, validate, saveQuiz, quizId, isDone, questionScore, timeLeft, plain, SKIP, rosterNames } from './lib.js';
 import { httpError, json, readBody, clean, esc } from './web.js';
 
 const digest = (s) => createHash('sha256').update(s).digest();
@@ -38,6 +38,8 @@ export async function prof(req, res, url) {
   if (path === '/prof/statut') return setStatus(res, quiz, group, form.get('status'));
   if (path === '/prof/note') return setGrade(res, quiz, group, form);
   if (path === '/prof/effacer') return erase(res, quiz, group);
+  if (path === '/prof/eleves') return setRoster(res, quiz, group, form.get('eleves') || '');
+  if (path === '/prof/liberer') return release(res, quiz, group, form.get('run') || '');
   throw httpError(404, 'Introuvable');
 }
 
@@ -205,25 +207,34 @@ function tally(quiz, runs, answers, seen, grades) {
 
 async function load(quizId, group) {
   const inGroup = 'JOIN runs r ON r.id = x.run_id WHERE r.quiz = ? AND r.group_name = ?';
-  const [[row], [sess], runs, answers, seen, grades] = await sql(
+  const [[row], [sess], runs, answers, seen, grades, [roster], claims] = await sql(
     ['SELECT data FROM quizzes WHERE id = ?', quizId],
     ['SELECT status FROM sessions WHERE quiz = ? AND group_name = ?', quizId, group],
     ['SELECT id, name, started_at FROM runs WHERE quiz = ? AND group_name = ? ORDER BY started_at', quizId, group],
     [`SELECT x.run_id, x.question_id, x.choice, x.correct FROM answers x ${inGroup} ORDER BY x.id`, quizId, group],
     [`SELECT x.run_id, x.question_id, x.shown_at FROM shown x ${inGroup}`, quizId, group],
     [`SELECT x.run_id, x.question_id, x.score FROM grades x ${inGroup}`, quizId, group],
+    ['SELECT names FROM rosters WHERE group_name = ?', group],
+    ['SELECT run_id FROM claims WHERE quiz = ? AND group_name = ?', quizId, group],
   );
   if (!row) throw httpError(404, 'Quiz introuvable');
   const quiz = readQuiz(row.data);
-  return { quiz, status: sess?.status || 'waiting', results: tally(quiz, runs, answers, seen, grades) };
+  const holders = new Set(claims.map((c) => c.run_id));
+  const results = tally(quiz, runs, answers, seen, grades).map((r) => ({ ...r, holds: holders.has(r.id) }));
+  return { quiz, status: sess?.status || 'waiting', names: rosterNames(roster), results };
 }
 
 const cellClass = (s) => (s === 1 ? 's-ok' : s > 0 ? 's-half' : 's-ko');
 const nameCell = (r) => `${esc(r.name)}${r.attempt > 1 ? ` <span class="attempt">essai ${r.attempt}</span>` : ''}`;
 const anchor = (r, q) => `n-${r.id}-${q.id}`;
 
+// Le passage qui détient un nom de la liste. Le libérer laisse un autre appareil commencer sous ce nom.
+const releaseForm = (r, quizId, group) => `<form class="release" method="post" action="/prof/liberer"
+  data-confirm="Libérer le nom ${esc(r.name)} ? Le prochain élève qui le choisit pourra commencer. Les réponses déjà données restent.">
+  ${hidden(quizId, group)}<input type="hidden" name="run" value="${esc(r.id)}"><button class="link-btn">Libérer le nom</button></form>`;
+
 async function session(req, res, quizId, group) {
-  const { quiz, status, results } = await load(quizId, group);
+  const { quiz, status, names, results } = await load(quizId, group);
   const state = STATUS[status];
   const link = `${origin(req)}/?quiz=${encodeURIComponent(quizId)}&groupe=${encodeURIComponent(group)}`;
 
@@ -245,6 +256,16 @@ async function session(req, res, quizId, group) {
     <button type="button" class="btn" data-copy="share-link">Copier le lien</button>
   </div>
 </section>
+
+<details class="rules roster"${names.length ? '' : ' open'}>
+  <summary>Liste des élèves : ${names.length ? `${names.length} noms` : 'aucune, les élèves tapent leur nom'}</summary>
+  <form class="rules-body" method="post" action="/prof/eleves">${hidden(quizId, group)}
+    <label for="roster-names">Un nom par ligne</label>
+    <textarea id="roster-names" name="eleves" class="input" rows="10" aria-describedby="roster-help">${esc(names.join('\n'))}</textarea>
+    <p class="help" id="roster-help">Avec une liste, l'élève choisit son nom dans un menu et ne peut pas en taper un autre. La liste vaut pour tous les quiz du groupe ${esc(group)}. Videz-la pour laisser les élèves taper leur nom.</p>
+    <button class="btn">Enregistrer la liste</button>
+  </form>
+</details>
 
 <div id="live">${live(quiz, quizId, group, results)}</div>
 
@@ -281,7 +302,7 @@ function live(quiz, quizId, group, results) {
     <thead><tr><th scope="col">Élève</th><th scope="col">Avancement</th><th scope="col" class="num">Score</th>
       ${questions.map((q, i) => `<th scope="col" class="q"><a href="#q-${i + 1}" title="${esc(q.question)}">${i + 1}</a></th>`).join('')}</tr></thead>
     <tbody>${results.map((r) => `<tr>
-      <th scope="row">${nameCell(r)}</th>
+      <th scope="row">${nameCell(r)}${r.holds ? releaseForm(r, quizId, group) : ''}</th>
       <td>${r.finished ? 'Terminé' : `Question ${Math.min(r.doneCount + 1, questions.length)} sur ${questions.length}`}</td>
       <td class="num"><strong>${num(r.total)}</strong> / ${questions.length}</td>
       ${r.cells.map((c) => (!c.done ? '<td class="cell"></td>'
@@ -396,6 +417,21 @@ async function setGrade(res, quiz, group, form) {
   back(res, quiz, group, `#n-${run}-${question}`);
 }
 
+// Un nom par ligne, sans doublon. Une liste vide est retirée : les élèves tapent de nouveau leur nom.
+async function setRoster(res, quiz, group, text) {
+  if (!group) throw httpError(400, 'Formulaire invalide');
+  const names = [...new Set(text.split('\n').map((n) => clean(n, 60)).filter(Boolean))];
+  await sql(names.length
+    ? ['INSERT INTO rosters (group_name, names) VALUES (?, ?) ON CONFLICT (group_name) DO UPDATE SET names = excluded.names', group, names.join('\n')]
+    : ['DELETE FROM rosters WHERE group_name = ?', group]);
+  back(res, quiz, group);
+}
+
+async function release(res, quiz, group, run) {
+  await sql(['DELETE FROM claims WHERE quiz = ? AND group_name = ? AND run_id = ?', quiz, group, run]);
+  back(res, quiz, group);
+}
+
 async function erase(res, quiz, group) {
   const runs = 'SELECT id FROM runs WHERE quiz = ? AND group_name = ?';
   await sql(
@@ -404,6 +440,7 @@ async function erase(res, quiz, group) {
     [`DELETE FROM grades WHERE run_id IN (${runs})`, quiz, group],
     ['DELETE FROM runs WHERE quiz = ? AND group_name = ?', quiz, group],
     ['DELETE FROM sessions WHERE quiz = ? AND group_name = ?', quiz, group],
+    ['DELETE FROM claims WHERE quiz = ? AND group_name = ?', quiz, group],
   );
   res.writeHead(303, { Location: `/prof?efface=${encodeURIComponent(group)}` });
   res.end();

@@ -18,7 +18,14 @@ export const SCHEMA = [
   // Note du formateur : 0, 0,5 ou 1. Elle remplace la note automatique.
   [`CREATE TABLE IF NOT EXISTS grades (run_id TEXT NOT NULL, question_id TEXT NOT NULL, score REAL NOT NULL,
     PRIMARY KEY (run_id, question_id))`],
+  // Élèves d'un groupe, un nom par ligne, pour tous ses quiz. Avec une liste, l'élève choisit son nom au lieu de le taper.
+  ['CREATE TABLE IF NOT EXISTS rosters (group_name TEXT PRIMARY KEY, names TEXT NOT NULL)'],
+  // Avec une liste, un nom appartient au passage qui l'a pris en premier. Le formateur peut le libérer.
+  [`CREATE TABLE IF NOT EXISTS claims (quiz TEXT NOT NULL, group_name TEXT NOT NULL, name TEXT NOT NULL, run_id TEXT NOT NULL,
+    PRIMARY KEY (quiz, group_name, name))`],
 ];
+
+export const rosterNames = (row) => (row ? row.names.split('\n') : []);
 
 // Turso par HTTP (pipeline Hrana v2) : une requête, les instructions s'exécutent dans l'ordre.
 // Chaque instruction est [sql, ...args]. Renvoie un tableau de lignes par instruction.

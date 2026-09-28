@@ -174,9 +174,32 @@ function showIntro() {
   $('closed-note').hidden = !closed;
   $('start-btn').disabled = waiting;
   $('waiting').hidden = !waiting;
+  namePicker();
   if (!$('name').value) $('name').value = recall('carnet-quiz:name') || '';
   clearTimeout(poller);
   if (waiting) poller = setTimeout(poll, 5000);
+}
+
+// Avec la liste du formateur, le champ du nom devient un menu. Il suit la liste à chaque mise à jour.
+// Un nom déjà pris est grisé, sauf pour l'appareil qui l'a pris : il peut recommencer.
+function namePicker() {
+  const names = quiz.names;
+  if (!names?.length) return;
+  if ($('name').tagName !== 'SELECT') {
+    const select = Object.assign(document.createElement('select'), { id: 'name', name: 'name', className: 'field', required: true });
+    select.setAttribute('aria-describedby', 'name-help');
+    $('name').replaceWith(select);
+  }
+  const value = $('name').value;
+  const taken = new Set(quiz.taken);
+  taken.delete(recall(key('mine')));
+  $('name').replaceChildren(new Option('Choisissez votre nom', ''), ...names.map((n) => {
+    const option = new Option(taken.has(n) ? `${n} (déjà pris)` : n, n);
+    option.disabled = taken.has(n);
+    return option;
+  }));
+  $('name').value = value;
+  if ($('name').selectedOptions[0]?.disabled) $('name').value = '';
 }
 
 // En attente de l'ouverture, la page redemande l'état du quiz toutes les 5 secondes
@@ -199,14 +222,18 @@ async function start(e) {
   if (busy) return;
   const typed = $('name').value.trim();
   if (!typed) {
-    alertIn('intro-message', 'Écrivez votre prénom et votre nom pour commencer.');
+    alertIn('intro-message', $('name').tagName === 'SELECT' ? 'Choisissez votre nom pour commencer.' : 'Écrivez votre prénom et votre nom pour commencer.');
     return $('name').focus();
   }
   busy = true;
   $('start-btn').setAttribute('aria-busy', 'true');
   try {
-    ({ run, name } = await api('/api/start', { quiz: quizId, group, name: typed }));
+    ({ run, name } = await api('/api/start', { quiz: quizId, group, name: typed, previous: recall(key('mine-run')) }));
     remember(key('run'), run);
+    if (quiz.names?.length) {
+      remember(key('mine'), name);
+      remember(key('mine-run'), run);
+    }
     remember('carnet-quiz:name', typed);
     $('who').textContent = name;
     quiz.questions = quiz.base.map(fresh);
@@ -214,7 +241,13 @@ async function start(e) {
     busy = false;
     play(0);
   } catch (err) {
-    alertIn('intro-message', err.status === 403 ? `${err.message}.` : `Impossible de commencer : ${err.message}.`);
+    alertIn('intro-message', err.status === 403 || err.status === 409 ? `${err.message}.` : `Impossible de commencer : ${err.message}.`);
+    // Un autre élève vient de prendre ce nom : le menu se met à jour
+    if (err.status === 409) {
+      const data = await api(`/api/quiz/${encodeURIComponent(quizId)}?groupe=${encodeURIComponent(group)}`).catch(() => null);
+      if (data) quiz.taken = data.taken;
+      namePicker();
+    }
   } finally {
     busy = false;
     $('start-btn').removeAttribute('aria-busy');

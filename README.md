@@ -22,12 +22,13 @@ Le serveur corrige les réponses. Le navigateur de l'élève ne reçoit la bonne
 La page `/prof` demande un mot de passe. Le navigateur affiche une fenêtre de connexion : l'identifiant est libre, le mot de passe est `PROF_PASSWORD`.
 
 1. Dans « Lancer un quiz », choisir le quiz, taper un nom de groupe (par exemple `eden-lundi`), puis « Préparer le lien ».
-2. Copier le lien et le poster sur Discord. Les élèves qui l'ouvrent attendent sur l'accueil du quiz.
-3. Cliquer « Ouvrir le quiz » quand tout le monde est prêt.
-4. Suivre les résultats. Le tableau se met à jour toutes les 5 secondes : une ligne par élève, une case par question.
-5. Noter les réponses rédigées dans « Réponses écrites » : 0, 0,5 ou 1. La même zone liste les réponses courtes refusées, pour accepter une formulation juste que le quiz n'avait pas prévue.
-6. Cliquer « Fermer le quiz » à la fin. Un élève en cours arrive sur ses résultats à sa prochaine action.
-7. Exporter en CSV, puis effacer les résultats du groupe une fois la note reportée.
+2. Pour imposer les noms, ouvrir « Liste des élèves » et coller un nom par ligne. L'élève choisit alors son nom dans un menu, et le serveur refuse tout autre nom. La liste vaut pour tous les quiz du même groupe. Un nom pris est grisé pour les autres élèves. Seul l'appareil qui l'a pris peut recommencer le quiz sous ce nom. Si un élève change d'appareil ou qu'un autre lui a pris son nom, cliquez « Libérer le nom » sous sa ligne dans les résultats : le prochain qui choisit ce nom peut commencer, et les réponses déjà données restent.
+3. Copier le lien et le poster sur Discord. Les élèves qui l'ouvrent attendent sur l'accueil du quiz.
+4. Cliquer « Ouvrir le quiz » quand tout le monde est prêt.
+5. Suivre les résultats. Le tableau se met à jour toutes les 5 secondes : une ligne par élève, une case par question.
+6. Noter les réponses rédigées dans « Réponses écrites » : 0, 0,5 ou 1. La même zone liste les réponses courtes refusées, pour accepter une formulation juste que le quiz n'avait pas prévue.
+7. Cliquer « Fermer le quiz » à la fin. Un élève en cours arrive sur ses résultats à sa prochaine action.
+8. Exporter en CSV, puis effacer les résultats du groupe une fois la note reportée.
 
 « Question par question » donne le taux de réussite de chaque question et, pour les questions à choix, ce que les élèves ont coché au premier essai. On voit ainsi quelle mauvaise réponse revient le plus souvent.
 
@@ -99,7 +100,7 @@ Le navigateur reçoit toutes les questions à l'ouverture du quiz et demande lui
 
 ## Données
 
-La base garde, pour chaque passage, le quiz, le groupe, le nom tapé, l'heure, chaque réponse envoyée, l'heure d'affichage des questions minutées et les notes du formateur. L'accueil du quiz le dit aux élèves. « Effacer les résultats du groupe », sur la page du groupe, supprime tout ce qui concerne ce groupe.
+La base garde, pour chaque passage, le quiz, le groupe, le nom tapé, l'heure, chaque réponse envoyée, l'heure d'affichage des questions minutées et les notes du formateur. L'accueil du quiz le dit aux élèves. « Effacer les résultats du groupe », sur la page du groupe, supprime les passages, les réponses et les notes du groupe. La liste des élèves reste : videz-la à la main.
 
 ## Lancer en local
 

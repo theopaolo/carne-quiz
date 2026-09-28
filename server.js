@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import {
-  SCHEMA, sql, readQuiz, publicQuiz, quizOutline, isDone, questionScore, timeLeft, parseValue, isCorrect, sameAnswer, solution, SKIP,
+  SCHEMA, sql, readQuiz, publicQuiz, quizOutline, isDone, questionScore, timeLeft, parseValue, isCorrect, sameAnswer, solution, SKIP, rosterNames,
 } from './lib.js';
 import { httpError, json, readJson, clean } from './web.js';
 import { prof } from './prof.js';
@@ -23,24 +23,50 @@ const closedError = (status) => httpError(403, status ? 'Le quiz est fermé' : '
 // Avant l'ouverture, le navigateur reçoit le titre et la forme du quiz, sans le texte des questions.
 // Après la fermeture, les questions restent lisibles pour relire ses réponses.
 async function getQuiz(res, id, group) {
-  const [[row], [session]] = await sql(
+  const [[row], [session], [roster], claims] = await sql(
     ['SELECT data FROM quizzes WHERE id = ?', id],
     ['SELECT status FROM sessions WHERE quiz = ? AND group_name = ?', id, group],
+    ['SELECT names FROM rosters WHERE group_name = ?', group],
+    ['SELECT name FROM claims WHERE quiz = ? AND group_name = ?', id, group],
   );
   if (!row) return json(res, 404, { error: 'Quiz introuvable' });
   const quiz = readQuiz(row.data);
   const status = session?.status || 'waiting';
-  json(res, 200, { status, ...(status === 'waiting' ? quizOutline(quiz) : publicQuiz(quiz)) });
+  json(res, 200, {
+    status,
+    names: rosterNames(roster),
+    taken: claims.map((c) => c.name),
+    ...(status === 'waiting' ? quizOutline(quiz) : publicQuiz(quiz)),
+  });
 }
 
 async function start(res, body) {
   const name = clean(body.name, 60);
   const group = clean(body.group, 40);
   if (!name || !group || typeof body.quiz !== 'string') return json(res, 400, { error: 'Nom, groupe et quiz requis' });
-  const [[session]] = await sql(['SELECT status FROM sessions WHERE quiz = ? AND group_name = ?', body.quiz, group]);
+  const [[session], [roster]] = await sql(
+    ['SELECT status FROM sessions WHERE quiz = ? AND group_name = ?', body.quiz, group],
+    ['SELECT names FROM rosters WHERE group_name = ?', group],
+  );
   if (session?.status !== 'open') throw closedError(session);
   const run = randomUUID();
-  await sql(['INSERT INTO runs (id, quiz, group_name, name) VALUES (?, ?, ?, ?)', run, body.quiz, group, name]);
+  if (!roster) {
+    await sql(['INSERT INTO runs (id, quiz, group_name, name) VALUES (?, ?, ?, ?)', run, body.quiz, group, name]);
+    return json(res, 200, { run, name });
+  }
+  if (!rosterNames(roster).includes(name)) throw httpError(400, 'Choisissez votre nom dans la liste');
+  // Le nom revient au premier qui le prend. L'appareil qui le détient peut recommencer : il envoie son passage
+  // précédent (`previous`). Chaque instruction est atomique, deux élèves qui cliquent ensemble ne l'ont pas tous les deux.
+  const [, , [claim]] = await sql(
+    [`INSERT INTO claims (quiz, group_name, name, run_id) VALUES (?, ?, ?, ?)
+      ON CONFLICT (quiz, group_name, name) DO UPDATE SET run_id = excluded.run_id WHERE claims.run_id = ?`,
+    body.quiz, group, name, run, typeof body.previous === 'string' ? body.previous : null],
+    [`INSERT INTO runs (id, quiz, group_name, name) SELECT ?, ?, ?, ?
+      WHERE EXISTS (SELECT 1 FROM claims WHERE quiz = ? AND group_name = ? AND name = ? AND run_id = ?)`,
+    run, body.quiz, group, name, body.quiz, group, name, run],
+    ['SELECT run_id FROM claims WHERE quiz = ? AND group_name = ? AND name = ?', body.quiz, group, name],
+  );
+  if (claim?.run_id !== run) throw httpError(409, 'Ce nom est déjà pris. Si c\'est le vôtre, demandez au formateur de le libérer');
   json(res, 200, { run, name });
 }
 

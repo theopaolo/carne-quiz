@@ -1281,6 +1281,27 @@ td.cell {
   color: var(--text-muted);
 }
 
+/* « Libérer le nom », sous le nom de l'élève dans le tableau */
+.release {
+  display: block;
+}
+
+.link-btn {
+  padding: 0;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--accent-text);
+}
+
 .state {
   display: inline-flex;
   align-items: center;
@@ -1671,4 +1692,21 @@ td.cell {
     animation: none !important;
     transition: none !important;
   }
+}
+
+.roster form {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  max-width: 32rem;
+}
+
+.roster label {
+  font-weight: 650;
+  color: var(--heading);
+}
+
+.roster textarea {
+  line-height: 1.5;
+  resize: vertical;
 }

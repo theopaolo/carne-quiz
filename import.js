@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
-import { SCHEMA, sql, normalize, validate } from './lib.js';
+import { SCHEMA, sql, normalize, validate, saveQuiz, quizId } from './lib.js';
 
 const files = process.argv.slice(2);
 if (!files.length) {
@@ -10,19 +9,15 @@ if (!files.length) {
 
 await sql(...SCHEMA);
 for (const file of files) {
+  const id = quizId(file);
   const quiz = normalize(JSON.parse(await readFile(file, 'utf8')));
+  quiz.title ||= id;
   const errors = validate(quiz);
   if (errors.length) {
     console.error(`${file} :\n  ${errors.join('\n  ')}`);
     process.exitCode = 1;
     continue;
   }
-  // Le nom du fichier sert d'identifiant dans le lien : decks/ux-j1-fin.json devient ?quiz=ux-j1-fin
-  const id = basename(file, '.json');
-  quiz.title ||= id;
-  await sql([
-    'INSERT INTO quizzes (id, title, data) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET title = excluded.title, data = excluded.data',
-    id, quiz.title, JSON.stringify(quiz),
-  ]);
+  await saveQuiz(id, quiz);
   console.log(`${id} : ${quiz.questions.length} questions, « ${quiz.title} »`);
 }

@@ -1,0 +1,54 @@
+{
+  "title": "Exemple : les quatre types de questions",
+  "description": "Un quiz de démonstration. Copiez ce fichier, changez le titre et les questions, puis importez-le depuis la page de suivi.",
+  "courseUrl": "https://developer.mozilla.org/fr/docs/Learn_web_development",
+  "timeLimit": 60,
+  "questions": [
+    {
+      "id": "q1",
+      "type": "choice",
+      "question": "Quelle balise HTML crée un lien vers une autre page ?",
+      "options": [
+        { "id": "A", "label": "`<link>`" },
+        { "id": "B", "label": "`<a>`" },
+        { "id": "C", "label": "`<href>`" },
+        { "id": "D", "label": "`<nav>`" }
+      ],
+      "correctAnswer": "B",
+      "hint": "La balise tient en une lettre.",
+      "explanation": "`<a href=\"…\">` crée un lien. `<link>` relie la page à une feuille de style, `<nav>` regroupe des liens de navigation."
+    },
+    {
+      "id": "q2",
+      "type": "multiple",
+      "timeLimit": 90,
+      "question": "Lesquelles de ces balises sont des titres de la page ?",
+      "options": [
+        { "id": "A", "label": "`<h1>`" },
+        { "id": "B", "label": "`<title>`" },
+        { "id": "C", "label": "`<h2>`" },
+        { "id": "D", "label": "`<header>`" },
+        { "id": "E", "label": "`<h6>`" }
+      ],
+      "correctAnswers": ["A", "C", "E"],
+      "hint": "Il existe six niveaux de titres.",
+      "explanation": "`<h1>` à `<h6>` sont les titres de la page. `<title>` est le titre de l'onglet, `<header>` un bloc d'en-tête."
+    },
+    {
+      "id": "q3",
+      "type": "text",
+      "question": "Quel attribut donne un texte de remplacement à une image ?",
+      "accept": ["alt", "attribut alt"],
+      "hint": "Trois lettres, pour « alternative ».",
+      "explanation": "`alt` décrit l'image pour les lecteurs d'écran, et quand elle ne s'affiche pas."
+    },
+    {
+      "id": "q4",
+      "type": "open",
+      "timeLimit": 180,
+      "question": "Expliquez en deux ou trois phrases pourquoi un bouton doit avoir un texte visible.",
+      "expected": "Le texte dit ce que fait le bouton. Un lecteur d'écran le lit à voix haute. Une icône seule peut être mal comprise.",
+      "explanation": "Barème : 0,5 point pour la compréhension, 0,5 point pour l'accessibilité."
+    }
+  ]
+}

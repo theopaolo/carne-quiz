@@ -5,6 +5,7 @@ export const SCHEMA = [
   ['CREATE TABLE IF NOT EXISTS quizzes (id TEXT PRIMARY KEY, title TEXT NOT NULL, data TEXT NOT NULL)'],
   [`CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, quiz TEXT NOT NULL REFERENCES quizzes(id),
     group_name TEXT NOT NULL, name TEXT NOT NULL, started_at TEXT NOT NULL DEFAULT (datetime('now')))`],
+  // choice : l'option choisie, les options cochées ("A,C"), le texte tapé, ou '' pour une question passée
   [`CREATE TABLE IF NOT EXISTS answers (id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
     question_id TEXT NOT NULL, choice TEXT NOT NULL, correct INTEGER NOT NULL,
     answered_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (run_id, question_id, choice))`],
@@ -13,6 +14,9 @@ export const SCHEMA = [
     created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (quiz, group_name))`],
   // Premier affichage d'une question minutée, en millisecondes depuis 1970 (horloge du serveur)
   [`CREATE TABLE IF NOT EXISTS shown (run_id TEXT NOT NULL, question_id TEXT NOT NULL, shown_at INTEGER NOT NULL,
+    PRIMARY KEY (run_id, question_id))`],
+  // Note du formateur : 0, 0,5 ou 1. Elle remplace la note automatique.
+  [`CREATE TABLE IF NOT EXISTS grades (run_id TEXT NOT NULL, question_id TEXT NOT NULL, score REAL NOT NULL,
     PRIMARY KEY (run_id, question_id))`],
 ];
 
@@ -51,21 +55,27 @@ function fromValue(v) {
   return v.value;
 }
 
-// Les anciens decks de flashcards ({ flashcards: [{ question, choices, correct_choice_index }] })
-// prennent la forme des quiz. Une carte sans correct_choice_index garde la réponse dont `reponse`
-// commence par le texte d'un choix. Une carte sans réponse retrouvée est laissée de côté.
+export const TYPES = ['choice', 'multiple', 'text', 'open'];
+
+// Un deck devient un quiz : type par défaut, temps hérité du quiz sauf pour une question à chercher dans le cours. Les anciens decks de flashcards
+// ({ flashcards: [{ question, choices, correct_choice_index }] }) deviennent des questions à choix.
 export function normalize(data) {
-  const questions = data.questions || fromFlashcards(data.flashcards || []);
-  // Temps de réponse en secondes : celui de la question, sinon celui du quiz, sinon pas de limite
-  return { title: data.title, questions: questions.map((q) => ({ ...q, timeLimit: q.timeLimit ?? data.timeLimit })) };
+  const { flashcards, ...quiz } = data;
+  const questions = data.questions || fromFlashcards(flashcards || []);
+  return {
+    ...quiz,
+    questions: questions.map((q) => ({ ...q, type: q.type || 'choice', timeLimit: q.timeLimit ?? (q.lookup ? 0 : data.timeLimit) })),
+  };
 }
 
+// Une carte sans correct_choice_index garde la réponse dont `reponse` commence par le texte d'un choix.
+// Une carte sans réponse retrouvée est laissée de côté.
 function fromFlashcards(cards) {
-  const plain = (t) => (t || '').replace(/`/g, '').trim().toLowerCase();
+  const plainText = (t) => (t || '').replace(/`/g, '').trim().toLowerCase();
   const questions = [];
   for (const c of cards) {
     if (!Array.isArray(c.choices) || !c.choices.length) continue;
-    const correct = c.correct_choice_index ?? c.choices.findIndex((ch) => plain(c.reponse).startsWith(plain(ch)));
+    const correct = c.correct_choice_index ?? c.choices.findIndex((ch) => plainText(c.reponse).startsWith(plainText(ch)));
     if (correct < 0) continue;
     questions.push({
       id: `q${questions.length + 1}`,
@@ -81,27 +91,119 @@ function fromFlashcards(cards) {
 // Liste les erreurs d'un quiz normalisé. Vide si le quiz est utilisable.
 export function validate(quiz) {
   const errors = [];
+  if (!quiz.title) errors.push('title manquant');
+  if (quiz.courseUrl && !/^https?:\/\//.test(quiz.courseUrl)) errors.push('courseUrl doit commencer par https://');
   if (!quiz.questions?.length) errors.push('aucune question');
   const ids = new Set();
   for (const q of quiz.questions || []) {
+    const at = `question ${q.id}`;
     if (!q.id || ids.has(q.id)) errors.push(`id manquant ou en double : ${q.id}`);
     ids.add(q.id);
-    if (!q.question) errors.push(`${q.id} : question vide`);
-    if (!(q.options?.length >= 2)) errors.push(`${q.id} : moins de 2 options`);
-    else if (!q.options.some((o) => o.id === q.correctAnswer)) errors.push(`${q.id} : correctAnswer absent des options`);
-    if (q.timeLimit != null && !(Number.isFinite(q.timeLimit) && q.timeLimit > 0)) errors.push(`${q.id} : timeLimit doit être un nombre de secondes`);
+    if (!q.question) errors.push(`${at} : texte de la question vide`);
+    if (!TYPES.includes(q.type)) errors.push(`${at} : type inconnu « ${q.type} », attendu ${TYPES.join(', ')}`);
+    if (q.timeLimit != null && !(Number.isFinite(q.timeLimit) && q.timeLimit >= 0)) errors.push(`${at} : timeLimit doit être un nombre de secondes, 0 pour aucun chrono`);
+    if (q.lookupUrl && !(q.lookup && /^https?:\/\//.test(q.lookupUrl))) errors.push(`${at} : lookupUrl doit commencer par https:// et accompagner lookup`);
+    const options = new Set((q.options || []).map((o) => o.id));
+    if (q.type === 'choice' || q.type === 'multiple') {
+      if (!(q.options?.length >= 2) || options.size !== q.options.length || q.options.length > LETTERS.length)
+        errors.push(`${at} : il faut de 2 à 8 options, avec des id différents`);
+    }
+    if (q.type === 'choice' && !options.has(q.correctAnswer)) errors.push(`${at} : correctAnswer absent des options`);
+    if (q.type === 'multiple' && !(q.correctAnswers?.length && q.correctAnswers.every((id) => options.has(id))))
+      errors.push(`${at} : correctAnswers doit lister des id d'options`);
+    if (q.type === 'text' && !(q.accept?.length && q.accept.every((a) => typeof a === 'string' && core(a))))
+      errors.push(`${at} : accept doit lister au moins une réponse acceptée`);
   }
   return errors;
 }
 
-// Ce que reçoit le navigateur : sans la bonne réponse ni l'explication.
+// Essais permis. Une réponse rédigée s'envoie une fois. Une question à choix finit quand il ne reste qu'une option.
+export function maxTries(q) {
+  if (q.type === 'open') return 1;
+  if (q.type === 'choice') return Math.min(2, q.options.length - 1);
+  return 2;
+}
+
+// Ce que reçoit le navigateur : sans les réponses, les variantes acceptées ni les explications.
 export function publicQuiz(quiz) {
   return {
     title: quiz.title,
-    questions: quiz.questions.map(({ id, question, options, hint, difficulty, topics, timeLimit }) => ({
-      id, question, options, hint, difficulty, topics, timeLimit,
+    description: quiz.description || '',
+    courseUrl: quiz.courseUrl || '',
+    questions: quiz.questions.map((q) => ({
+      id: q.id,
+      type: q.type,
+      question: q.question,
+      options: q.options,
+      hint: q.hint,
+      topics: q.topics,
+      timeLimit: q.timeLimit,
+      lookup: q.lookup,
+      lookupUrl: q.lookupUrl,
     })),
   };
+}
+
+// Avant l'ouverture, l'accueil annonce le nombre et le type des questions sans leur texte
+export const quizOutline = (quiz) => ({
+  ...publicQuiz(quiz),
+  questions: quiz.questions.map(({ type, timeLimit, lookup }) => ({ type, timeLimit, lookup: Boolean(lookup) })),
+});
+
+// Minuscules, sans accents ni ponctuation : « Loi de Jakob ! » devient « loi de jakob »
+export function plain(text) {
+  return String(text).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Mots qui entourent la réponse sans la changer : « c'est la loi de Jakob » se compare comme « jakob »
+const FILLERS = new Set('c est ce cest le la les l un une des de du d loi lois principe effet regle the a an of law effect principle'.split(' '));
+const core = (text) => plain(text).split(' ').filter((w) => !FILLERS.has(w)).join(' ');
+
+function distance(a, b) {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = row;
+  }
+  return prev[b.length];
+}
+
+// Une réponse tapée est juste si, mots de liaison retirés, elle vaut une variante acceptée à une faute
+// de frappe près dès 5 lettres, deux dès 10. Toute la réponse compte : « Jakob Hick » ne vaut pas « Jakob ».
+export function textMatches(input, accepted) {
+  const x = core(input);
+  return accepted.some((variant) => {
+    const y = core(variant);
+    return distance(x, y) <= (y.length >= 10 ? 2 : y.length >= 5 ? 1 : 0);
+  });
+}
+
+export const SKIP = '';
+
+// La valeur envoyée par le navigateur, mise en forme pour la base. null si elle ne convient pas à la question.
+export function parseValue(q, value) {
+  if (q.type === 'choice') return q.options.some((o) => o.id === value) ? value : null;
+  if (q.type === 'multiple') {
+    if (!Array.isArray(value) || !value.length) return null;
+    const ids = [...new Set(value)].sort();
+    return ids.every((id) => q.options.some((o) => o.id === id)) ? ids.join(',') : null;
+  }
+  const text = typeof value === 'string' ? value.trim() : '';
+  const max = q.type === 'open' ? 1500 : 200;
+  return text && text.length <= max ? text : null;
+}
+
+export function isCorrect(q, value) {
+  if (q.type === 'choice') return value === q.correctAnswer;
+  if (q.type === 'multiple') return value === [...q.correctAnswers].sort().join(',');
+  if (q.type === 'text') return textMatches(value, q.accept);
+  return false;
+}
+
+// Deux envois identiques ne comptent qu'une fois. « Jakob » et « jakob » sont le même essai.
+export function sameAnswer(q, a, b) {
+  return q.type === 'text' ? plain(a) === plain(b) : a === b;
 }
 
 // Le serveur accepte encore une réponse 2 s après la fin du temps affiché, le temps qu'elle arrive.
@@ -113,13 +215,37 @@ export function timeLeft(q, shownAt, now = Date.now()) {
 }
 
 // `rows` : les réponses d'un passage à une question, dans l'ordre d'envoi. `left` : timeLeft().
-// Une question est finie quand la bonne réponse est trouvée, qu'il ne reste qu'une option ou que le temps est écoulé.
-export function isDone(rows, optionCount, left = null) {
-  return rows.some((r) => r.correct) || rows.length >= optionCount - 1 || (left !== null && left < -GRACE);
+// Finie quand la réponse est trouvée, la question passée, les essais épuisés ou le temps écoulé.
+export function isDone(q, rows, left = null) {
+  return rows.some((r) => r.correct || r.choice === SKIP) || rows.length >= maxTries(q) || (left !== null && left < -GRACE);
 }
 
-// 1 point au premier essai, 0,5 au deuxième, 0 ensuite. Le barème se règle ici.
-export function questionScore(rows) {
+// 1 point au premier essai, 0,5 au deuxième, 0 ensuite. La note du formateur l'emporte.
+// null : réponse rédigée en attente de note.
+export function questionScore(q, rows, grade = null) {
+  if (grade !== null) return grade;
+  if (q.type === 'open') return rows.some((r) => r.choice !== SKIP) ? null : 0;
   const hit = rows.findIndex((r) => r.correct);
   return hit === 0 ? 1 : hit === 1 ? 0.5 : 0;
 }
+
+// La bonne réponse, montrée une fois la question finie
+export function solution(q) {
+  if (q.type === 'choice') return q.correctAnswer;
+  if (q.type === 'multiple') return q.correctAnswers;
+  if (q.type === 'text') return q.accept[0];
+  return q.expected || '';
+}
+
+// « decks/UX J1 fin.json » devient l'identifiant « ux-j1-fin », utilisé dans le lien du quiz
+export const quizId = (fileName) => plain(fileName.replace(/^.*[\\/]/, '').replace(/\.json$/i, '')).replace(/ /g, '-');
+
+export function saveQuiz(id, quiz) {
+  return sql([
+    'INSERT INTO quizzes (id, title, data) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET title = excluded.title, data = excluded.data',
+    id, quiz.title, JSON.stringify(quiz),
+  ]);
+}
+
+// Un quiz lu en base repasse par normalize : ceux enregistrés avant l'ajout des types restent lisibles
+export const readQuiz = (data) => normalize(JSON.parse(data));

@@ -4,45 +4,111 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
+    <meta name="color-scheme" content="light dark">
     <title>Quiz | Carnet</title>
+    <link rel="icon" href="/icon.svg">
+    <link rel="preload" href="/fonts/InclusiveSans.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/quiz.css">
+    <script src="/quiz.js" type="module"></script>
 </head>
 <body>
-    <div class="column">
-        <header class="topbar">
+    <header class="topbar">
+        <div class="topbar-inner">
             <span class="brand">Carnet</span>
-            <strong id="quiz-title">Quiz</strong>
-            <span class="status"><span id="progress"></span> <span id="score"></span></span>
-        </header>
+            <span class="topbar-title" id="quiz-title">Quiz</span>
+            <span class="topbar-who" id="who"></span>
+        </div>
+    </header>
 
-        <p id="message" class="message" role="alert" hidden></p>
+    <main class="page" id="main">
+        <p class="loading" id="loading">Chargement du quiz…</p>
 
-        <form id="start" class="start" hidden>
-            <label for="name">Votre prénom et votre nom</label>
-            <input id="name" name="name" autocomplete="name" required maxlength="60">
-            <p class="meta">Votre nom et vos réponses sont enregistrés pour le suivi du cours. Seul le formateur les voit.</p>
-            <button class="button">Commencer</button>
-        </form>
+        <section id="fatal" hidden aria-labelledby="fatal-title">
+            <h1 id="fatal-title"></h1>
+            <p class="lead" id="fatal-text"></p>
+        </section>
 
-        <main id="question-card" hidden>
-            <div class="question-head">
-                <p id="meta" class="meta"></p>
-                <p id="timer" class="timer" hidden></p>
+        <section id="intro" hidden aria-labelledby="intro-title">
+            <p class="kicker" id="intro-group"></p>
+            <h1 id="intro-title"></h1>
+            <p class="lead" id="intro-desc"></p>
+
+            <dl class="facts">
+                <div><dt>Questions</dt><dd id="fact-count"></dd></div>
+                <div><dt>Temps de réponse</dt><dd id="fact-time"></dd></div>
+                <div><dt>Note maximale</dt><dd id="fact-max"></dd></div>
+            </dl>
+            <p class="types" id="fact-types"></p>
+
+            <h2 class="rules-title">Comment ça marche</h2>
+            <ul class="rules">
+                <li>Juste du premier coup : 1 point. Après une erreur, un indice s'affiche et le deuxième essai vaut 0,5 point.</li>
+                <li id="rule-time">Le chrono de chaque question démarre à son affichage. Il continue si vous rechargez la page. À la fin du temps, la réponse sélectionnée ou écrite est envoyée.</li>
+                <li id="rule-lookup">Les questions de recherche n'ont pas de chrono. Un lien ouvre la page du cours où chercher la réponse, dans un nouvel onglet.</li>
+                <li id="rule-open">Une réponse rédigée s'envoie une seule fois. Le formateur la note sur 1 point.</li>
+                <li>Passer une question vaut 0 point et affiche la correction.</li>
+            </ul>
+
+            <form id="start" class="start" novalidate>
+                <label for="name">Votre prénom et votre nom</label>
+                <input id="name" class="field" name="name" autocomplete="name" maxlength="60" required aria-describedby="name-help">
+                <p class="help" id="name-help">Votre nom et vos réponses sont enregistrés pour le suivi du cours. Seul le formateur les voit.</p>
+                <p class="alert" id="intro-message" role="alert" hidden></p>
+                <div class="start-row">
+                    <button class="btn btn-primary" id="start-btn">Commencer le quiz</button>
+                    <p class="waiting" id="waiting" hidden><span class="pulse" aria-hidden="true"></span>Le formateur n'a pas encore ouvert le quiz. La page s'ouvrira toute seule.</p>
+                </div>
+            </form>
+            <p class="alert alert-info" id="closed-note" hidden>Ce quiz est fermé. Demandez au formateur s'il peut le rouvrir.</p>
+        </section>
+
+        <section id="play" hidden aria-labelledby="question">
+            <div class="play-head">
+                <p class="counter" id="counter"></p>
+                <p class="play-meta">
+                    <span id="points"></span>
+                    <span class="timer" id="timer" role="timer" hidden>
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg>
+                        <span class="sr-only">Temps restant :</span> <span id="timer-text"></span>
+                    </span>
+                </p>
             </div>
-            <h1 id="question" class="prompt" tabindex="-1"></h1>
-            <div id="options" class="options"></div>
-            <p id="hint" class="hint" hidden></p>
-            <div id="feedback" class="feedback" aria-live="polite"></div>
-            <div class="controls">
-                <button id="hint-btn" class="button" type="button">Indice <kbd>H</kbd></button>
-                <button id="next-btn" class="button" type="button" hidden>Suivant <kbd>Entrée</kbd></button>
+            <ol class="track" id="track" aria-hidden="true"></ol>
+
+            <p class="kind" id="kind"></p>
+            <h1 class="prompt" id="question" tabindex="-1"></h1>
+            <p class="lookup" id="lookup" hidden></p>
+
+            <form id="answer-form" novalidate><div id="answer"></div></form>
+            <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+            <p class="alert" id="play-message" role="alert" hidden></p>
+
+            <div class="actions">
+                <button type="submit" form="answer-form" class="btn btn-primary" id="submit-btn"></button>
+                <button type="button" class="btn btn-primary" id="next-btn" hidden></button>
+                <button type="button" class="btn btn-quiet" id="skip-btn">Passer la question (0 point)</button>
             </div>
-            <p class="kbd-help">Clavier : A à D pour répondre, H pour l'indice, Entrée pour la suite.</p>
-        </main>
+            <p class="keys" id="keys"></p>
+        </section>
 
-        <section id="results" hidden></section>
-    </div>
+        <section id="end" hidden aria-labelledby="end-title">
+            <p class="alert alert-info" id="end-note" hidden></p>
+            <p class="kicker" id="end-kicker"></p>
+            <h1 id="end-title" tabindex="-1"></h1>
+            <p class="score"><span class="score-value" id="score-value"></span> <span class="score-max" id="score-max"></span></p>
+            <div class="meter" aria-hidden="true"><span id="meter-fill"></span></div>
+            <p class="verdict" id="verdict"></p>
+            <dl class="tally" id="tally"></dl>
+            <p class="help" id="pending-note" hidden></p>
+            <div class="end-actions">
+                <a class="btn btn-primary" id="course-link" hidden>Retour au cours</a>
+                <button type="button" class="btn" id="restart-btn">Recommencer le quiz</button>
+            </div>
+            <h2 class="review-title">Vos réponses, question par question</h2>
+            <ol class="review" id="review"></ol>
+        </section>
+    </main>
 
-    <script src="/quiz.js" type="module"></script>
+    <p class="sr-only" id="announce" aria-live="assertive"></p>
 </body>
 </html>

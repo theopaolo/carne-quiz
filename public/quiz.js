@@ -148,11 +148,9 @@ function duration(seconds) {
 
 function timeRange(questions) {
   const limits = questions.map((q) => q.timeLimit).filter(Boolean);
-  if (!limits.length) return 'Sans limite';
+  if (!limits.length) return 'Sans chrono';
   const [min, max] = [Math.min(...limits), Math.max(...limits)];
-  const range = min === max ? `${duration(min)} par question` : `De ${duration(min)} à ${duration(max)} selon la question`;
-  const free = questions.length - limits.length;
-  return free ? `${range}, ${free} sans limite` : range;
+  return min === max ? `${duration(min)} par question` : `${duration(min)} à ${duration(max)} par question`;
 }
 
 function showIntro() {
@@ -165,9 +163,9 @@ function showIntro() {
   $('intro-title').textContent = quiz.title;
   $('intro-desc').textContent = quiz.description;
   $('intro-desc').hidden = !quiz.description;
-  $('fact-count').textContent = questions.length;
+  $('fact-count').textContent = plural(questions.length, ['question', 'questions']);
   $('fact-time').textContent = timeRange(questions);
-  $('fact-max').textContent = points(questions.length);
+  $('fact-max').textContent = `Noté sur ${num(questions.length)}`;
   $('fact-types').textContent = outline(questions);
   $('rule-time').hidden = !questions.some((q) => q.timeLimit);
   $('rule-lookup').hidden = !questions.some((q) => q.lookup);

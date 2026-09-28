@@ -16,6 +16,7 @@
 :root {
   --font-sans: "Inclusive Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Roboto Mono", ui-monospace, monospace;
+  --bg-desk: #f2eee6;
   --bg-page: #fdfbf7;
   --bg-surface: #fffefc;
   --bg-sunken: #f5f1e9;
@@ -38,10 +39,12 @@
   --ko-bg: #fbeae8;
   --radius: 6px;
   --column: 42rem;
+  --sheet-pad: 40px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --bg-desk: #0f1117;
     --bg-page: #14171f;
     --bg-surface: #1b1f2a;
     --bg-sunken: #181c25;
@@ -78,7 +81,7 @@ html {
   font-size: 100%;
   line-height: 1.55;
   color: var(--text);
-  background: var(--bg-page);
+  background: var(--bg-desk);
   -webkit-font-smoothing: antialiased;
   text-size-adjust: 100%;
 }
@@ -190,19 +193,14 @@ kbd {
 
 /* Mise en page */
 
-.topbar {
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-}
-
 .topbar-inner {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 12px;
-  max-width: var(--column);
+  gap: 4px 8px;
+  max-width: calc(var(--column) + 2 * var(--sheet-pad));
   margin: 0 auto;
-  padding: 14px 16px;
+  padding: 14px var(--sheet-pad);
   font-size: 0.9375rem;
 }
 
@@ -217,15 +215,25 @@ kbd {
   color: var(--text-muted);
 }
 
+.topbar-title::before {
+  content: "/";
+  margin-right: 8px;
+  color: var(--border-strong);
+}
+
 .topbar-who {
   margin-left: auto;
   color: var(--text-muted);
 }
 
+/* Feuille du carnet posée sur le bureau, comme les pages de cours */
 .page {
-  max-width: var(--column);
-  margin: 0 auto;
-  padding: 40px 16px 80px;
+  max-width: calc(var(--column) + 2 * var(--sheet-pad));
+  margin: 0 auto 32px;
+  padding: 40px var(--sheet-pad) 64px;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
 .wide {
@@ -388,57 +396,90 @@ textarea.field {
 
 /* Accueil du quiz */
 
+/* Un trait avant chaque chiffre. La liste déborde de 15px à gauche et coupe ce débord :
+   le trait du premier élément de chaque ligne disparaît quand la ligne passe à la suivante */
 .facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 16px 24px;
-  margin: 28px 0 12px;
-  padding: 16px 0;
-  border-block: 1px solid var(--border);
-}
-
-.facts dt {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-}
-
-.facts dd {
-  margin: 2px 0 0;
-  font-size: 1.125rem;
-  font-weight: 650;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin: 20px 0 0 -15px;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
   color: var(--heading);
+  clip-path: inset(0 0 0 15px);
 }
 
-.types {
-  font-size: 0.9375rem;
-  color: var(--text-muted);
-}
-
-.rules-title {
-  margin-top: 28px;
-  font-size: 1.0625rem;
-}
-
-.rules {
-  margin: 0;
-  padding-left: 1.25rem;
-}
-
-.rules li {
-  margin-bottom: 6px;
-  padding-left: 4px;
-}
-
-.rules li::marker {
-  color: var(--accent);
+.facts li {
+  padding: 0 14px;
+  border-left: 1px solid var(--border-strong);
 }
 
 .start {
   display: grid;
   gap: 8px;
-  margin-top: 28px;
-  padding-top: 24px;
+  margin-top: 32px;
+  padding-top: 28px;
   border-top: 1px solid var(--border);
+}
+
+/* Règles repliées : on peut commencer sans les lire, elles restent sous la main */
+.rules {
+  margin-top: 32px;
+  font-size: 0.9375rem;
+}
+
+.rules summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  font-weight: 600;
+  color: var(--heading);
+  cursor: pointer;
+  list-style: none;
+}
+
+.rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.rules summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.rules[open] summary::before {
+  transform: rotate(45deg);
+}
+
+.rules summary:hover {
+  color: var(--accent-text);
+}
+
+.rules-body {
+  margin: 12px 0 0 4px;
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
+.rules ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.rules li {
+  margin-bottom: 6px;
+}
+
+.rules li::marker {
+  color: var(--accent);
 }
 
 .start label {
@@ -991,10 +1032,30 @@ textarea.field {
   background: var(--accent-bg);
 }
 
-@media (max-width: 34rem) {
-  .page {
-    padding-top: 28px;
+/* Téléphone : la feuille occupe tout l'écran */
+@media (max-width: 760px) {
+  :root {
+    --sheet-pad: 16px;
   }
+
+  html {
+    background: var(--bg-page);
+  }
+
+  .topbar {
+    background: var(--bg-page);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page {
+    margin: 0;
+    padding-top: 28px;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 34rem) {
 
   .choice {
     grid-template-columns: 30px minmax(0, 1fr);

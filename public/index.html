@@ -33,20 +33,10 @@
             <h1 id="intro-title"></h1>
             <p class="lead" id="intro-desc"></p>
 
-            <dl class="facts">
-                <div><dt>Questions</dt><dd id="fact-count"></dd></div>
-                <div><dt>Temps de réponse</dt><dd id="fact-time"></dd></div>
-                <div><dt>Note maximale</dt><dd id="fact-max"></dd></div>
-            </dl>
-            <p class="types" id="fact-types"></p>
-
-            <h2 class="rules-title">Comment ça marche</h2>
-            <ul class="rules">
-                <li>Juste du premier coup : 1 point. Après une erreur, un indice s'affiche et le deuxième essai vaut 0,5 point.</li>
-                <li id="rule-time">Le chrono de chaque question démarre à son affichage. Il continue si vous rechargez la page. À la fin du temps, la réponse sélectionnée ou écrite est envoyée.</li>
-                <li id="rule-lookup">Les questions de recherche n'ont pas de chrono. Un lien ouvre la page du cours où chercher la réponse, dans un nouvel onglet.</li>
-                <li id="rule-open">Une réponse rédigée s'envoie une seule fois. Le formateur la note sur 1 point.</li>
-                <li>Passer une question vaut 0 point et affiche la correction.</li>
+            <ul class="facts">
+                <li id="fact-count"></li>
+                <li id="fact-max"></li>
+                <li id="fact-time"></li>
             </ul>
 
             <form id="start" class="start" novalidate>
@@ -60,6 +50,20 @@
                 </div>
             </form>
             <p class="alert alert-info" id="closed-note" hidden>Ce quiz est fermé. Demandez au formateur s'il peut le rouvrir.</p>
+
+            <details class="rules">
+                <summary>Comment ça marche</summary>
+                <div class="rules-body">
+                    <p id="fact-types"></p>
+                    <ul>
+                        <li>Juste du premier coup : 1 point. Après une erreur, un indice s'affiche et le deuxième essai vaut 0,5 point.</li>
+                        <li id="rule-time">Le chrono de chaque question démarre à son affichage. Il continue si vous rechargez la page. À la fin du temps, la réponse sélectionnée ou écrite est envoyée.</li>
+                        <li id="rule-lookup">Les questions de recherche n'ont pas de chrono. Un lien ouvre la page du cours où chercher la réponse, dans un nouvel onglet.</li>
+                        <li id="rule-open">Une réponse rédigée s'envoie une seule fois. Le formateur la note sur 1 point.</li>
+                        <li>Passer une question vaut 0 point et affiche la correction.</li>
+                    </ul>
+                </div>
+            </details>
         </section>
 
         <section id="play" hidden aria-labelledby="question">

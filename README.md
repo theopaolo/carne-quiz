@@ -47,7 +47,7 @@ Ouvrez « Équipes » depuis `/prof`, ou depuis une séance de quiz. Choisissez 
 
 « Ouvrir l’écran des élèves » ouvre une fenêtre à placer sur le projecteur. Elle affiche toutes les équipes en grand, puis, pendant les oraux, l’équipe à l’oral avec ses membres et la file de passage. Les deux fenêtres restent synchronisées. Sur l’écran, Espace, Entrée, flèche droite ou Page suivante tirent l’ordre, puis passent à l’équipe suivante. Flèche gauche ou Page précédente reviennent à l’équipe précédente, F bascule en plein écran. Un nouvel ordre se tire depuis la régie. Une télécommande de présentation suffit donc à mener les oraux.
 
-Les réglages, présences, équipes, ordre et passages sont conservés dans ce navigateur, par classe. Modifier les réglages prépare le prochain tirage. « Refaire les équipes » remplace les équipes et remet l’ordre à zéro après confirmation. « Tirer un nouvel ordre » pendant les oraux demande aussi une confirmation.
+Les réglages, présences, équipes, ordre et passages sont conservés dans ce navigateur, par classe. « Copier le lien des équipes » les transporte vers un autre navigateur ou une autre adresse du site : ouvrir le lien remplace le tirage en place après confirmation. Les équipes sont dans la partie du lien après le #, que le navigateur n’envoie pas au serveur. Le lien contient les noms des élèves en clair. Modifier les réglages prépare le prochain tirage. « Refaire les équipes » remplace les équipes et remet l’ordre à zéro après confirmation. « Tirer un nouvel ordre » pendant les oraux demande aussi une confirmation.
 
 ## Quiz-roulette
 

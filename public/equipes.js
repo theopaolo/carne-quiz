@@ -28,6 +28,7 @@ function transition(render) {
 function session({ group, names }) {
   const key = `carnet:equipes:${group}`;
   const s = {
+    group,
     names,
     onchange: () => {},
     present: () => names.filter((n) => !s.state.excluded.includes(n)),
@@ -39,6 +40,25 @@ function session({ group, names }) {
       const { passage } = s.state;
       if (rank < 0 || passage < 0) return '';
       return rank < passage ? 'done' : rank === passage ? 'now' : rank === passage + 1 ? 'next' : '';
+    },
+    // Lit un tirage enregistré ou reçu par lien. Une composition en cours de saisie peut être invalide :
+    // elle repart du réglage par défaut sans perdre le tirage.
+    read(text) {
+      const value = JSON.parse(text);
+      value.passage ??= -1;
+      if (!Array.isArray(value.plan) || !value.plan.length || !value.plan.every((r) => r
+        && [r.count, r.size].every((n) => Number.isInteger(n) && n >= 0 && n <= 500))) value.plan = balanced(names.length, 3);
+      if (!Array.isArray(value.excluded) || !value.excluded.every((n) => typeof n === 'string')
+        || !Array.isArray(value.teams) || !value.teams.every((t) => t && typeof t.name === 'string'
+          && t.name.length <= 60 && Array.isArray(t.members) && t.members.length && t.members.every((n) => typeof n === 'string'))
+        || !Array.isArray(value.order) || (value.order.length && (value.order.length !== value.teams.length
+          || new Set(value.order).size !== value.order.length || !value.order.every((i) => Number.isInteger(i) && i >= 0 && i < value.teams.length)))
+        || !Number.isInteger(value.passage) || value.passage < -1 || value.passage > (value.order.length || -1)
+      ) throw new Error('Enregistrement invalide');
+      const members = value.teams.flatMap((t) => t.members);
+      if (new Set(members).size !== members.length) throw new Error('Élève en double');
+      value.excluded = value.excluded.filter((n) => names.includes(n));
+      return value;
     },
     save() {
       try {
@@ -79,24 +99,7 @@ function session({ group, names }) {
     let message = '';
     try {
       const saved = localStorage.getItem(key);
-      if (saved) {
-        const value = JSON.parse(saved);
-        value.passage ??= -1;
-        // Une composition en cours de saisie peut être invalide : elle repart du réglage par défaut sans perdre le tirage
-        if (!Array.isArray(value.plan) || !value.plan.length || !value.plan.every((r) => r
-          && [r.count, r.size].every((n) => Number.isInteger(n) && n >= 0 && n <= 500))) value.plan = s.state.plan;
-        if (!Array.isArray(value.excluded) || !value.excluded.every((n) => typeof n === 'string')
-          || !Array.isArray(value.teams) || !value.teams.every((t) => t && typeof t.name === 'string'
-            && t.name.length <= 60 && Array.isArray(t.members) && t.members.length && t.members.every((n) => typeof n === 'string'))
-          || !Array.isArray(value.order) || (value.order.length && (value.order.length !== value.teams.length
-            || new Set(value.order).size !== value.order.length || !value.order.every((i) => Number.isInteger(i) && i >= 0 && i < value.teams.length)))
-          || !Number.isInteger(value.passage) || value.passage < -1 || value.passage > (value.order.length || -1)
-        ) throw new Error('Enregistrement invalide');
-        const members = value.teams.flatMap((t) => t.members);
-        if (new Set(members).size !== members.length) throw new Error('Élève en double');
-        s.state = value;
-        s.state.excluded = s.state.excluded.filter((n) => names.includes(n));
-      }
+      if (saved) s.state = s.read(saved);
     } catch (err) {
       message = err.name === 'SecurityError'
         ? 'Le navigateur bloque l’enregistrement. Gardez cette page ouverte pour conserver le tirage.'
@@ -231,7 +234,7 @@ function desk(s) {
     const focused = el('list').contains(document.activeElement) ? document.activeElement.id : '';
     const drawn = s.state.teams.length > 0;
     el('empty').hidden = drawn;
-    el('fun').hidden = el('names-help').hidden = !drawn;
+    el('fun').hidden = el('link').hidden = el('names-help').hidden = !drawn;
     const placed = s.state.teams.flatMap((t) => t.members);
     const unplaced = drawn ? s.present().filter((n) => !placed.includes(n)) : [];
     el('list').replaceChildren(...s.ordered().map((i) => {
@@ -351,6 +354,18 @@ function desk(s) {
       });
     });
   }
+  // Le tirage voyage après le # : le navigateur ne l'envoie pas au serveur
+  el('link').addEventListener('click', async () => {
+    const url = `${location.origin}/prof/equipes?groupe=${encodeURIComponent(s.group)}#equipes=${encodeURIComponent(JSON.stringify(s.state))}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      el('link').textContent = 'Lien copié';
+      announce('Lien des équipes copié.');
+      setTimeout(() => { el('link').textContent = 'Copier le lien des équipes'; }, 2000);
+    } catch {
+      prompt('Copiez le lien des équipes :', url);
+    }
+  });
   el('open').addEventListener('click', (event) => {
     if (window.open(el('open').href, el('open').target, 'popup,width=1280,height=720')) event.preventDefault();
   });
@@ -359,10 +374,27 @@ function desk(s) {
     renderPlan();
     transition(renderTeams);
   };
+  let notice = '';
+  const link = new URLSearchParams(location.hash.slice(1)).get('equipes');
+  if (link !== null) {
+    history.replaceState(null, '', location.pathname + location.search);
+    if (!s.state.teams.length || confirm('Remplacer les équipes de cette classe par celles du lien ?')) {
+      try {
+        s.state = s.read(link);
+        const missing = s.state.teams.flatMap((t) => t.members).filter((n) => !s.names.includes(n));
+        if (missing.length) notice = `Ces élèves ne sont pas dans la liste de classe et quittent leur équipe : ${missing.join(', ')}. Ajoutez-les à la liste, puis rouvrez le lien.`;
+        announce('Équipes du lien importées.');
+      } catch {
+        notice = 'Le lien des équipes est illisible. Copiez-le à nouveau depuis la régie d’origine.';
+      }
+    }
+  }
+  // Les équipes suivent la liste de classe et les présences
   if (s.state.teams.length) {
     prune(s.state, s.present());
     s.save();
   }
+  if (notice) error(notice);
   renderPresence();
   renderPlan();
   renderTeams();

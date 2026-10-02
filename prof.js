@@ -262,7 +262,7 @@ ${groupForm}`));
     </form>
   </section>
   <section class="equipes-results" aria-labelledby="equipes-title">
-    <div class="equipes-heading"><h2 id="equipes-title" tabindex="-1">Les équipes</h2><button class="btn" type="button" id="equipes-fun" hidden>Noms avec emojis</button></div>
+    <div class="equipes-heading"><h2 id="equipes-title" tabindex="-1">Les équipes</h2><div class="actions-row"><button class="btn btn-quiet" type="button" id="equipes-link" hidden>Copier le lien des équipes</button><button class="btn" type="button" id="equipes-fun" hidden>Noms avec emojis</button></div></div>
     <p class="help" id="equipes-stale" role="status" hidden>La composition a changé. Refaites le tirage pour l’appliquer aux équipes.</p>
     <div class="equipes-empty" id="equipes-empty">
       <p>Les équipes s’afficheront ici. Choisissez une taille d’équipe, puis tirez les équipes.</p>

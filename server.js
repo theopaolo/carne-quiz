@@ -1,16 +1,32 @@
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import {
-  SCHEMA, sql, readQuiz, publicQuiz, quizOutline, isDone, questionScore, timeLeft, parseValue, isCorrect, sameAnswer, solution, SKIP, rosterNames,
+  SCHEMA,
+  SKIP,
+  isCorrect,
+  isDone,
+  parseValue,
+  publicQuiz,
+  questionScore,
+  quizOutline,
+  readQuiz,
+  rosterNames,
+  sameAnswer, solution,
+  sql,
+  timeLeft,
 } from './lib.js';
-import { httpError, json, readJson, clean } from './web.js';
 import { prof } from './prof.js';
+import { clean, httpError, json, readJson } from './web.js';
 
 const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/quiz.js': ['quiz.js', 'text/javascript; charset=utf-8'],
   '/suivi.js': ['suivi.js', 'text/javascript; charset=utf-8'],
+  '/roulette.js': ['roulette.js', 'text/javascript; charset=utf-8'],
+  '/roulette-draw.js': ['roulette-draw.js', 'text/javascript; charset=utf-8'],
+  '/equipes.js': ['equipes.js', 'text/javascript; charset=utf-8'],
+  '/equipes-draw.js': ['equipes-draw.js', 'text/javascript; charset=utf-8'],
   '/quiz.css': ['quiz.css', 'text/css; charset=utf-8'],
   '/icon.svg': ['icon.svg', 'image/svg+xml'],
   '/exemple.json': ['exemple.json', 'application/json; charset=utf-8'],
@@ -112,6 +128,24 @@ async function answer(res, { run, question, value, skip }) {
   json(res, 200, outcome(q, rows, shownAt, grade));
 }
 
+// Pendant une question, le navigateur signale chaque sortie de la page, le retour avec sa durée en ms,
+// et chaque copie ou collage qu'il a bloqué. Le formateur voit les totaux dans les résultats.
+// ponytail: les compteurs viennent du navigateur. Un élève qui bloque ces requêtes ne laisse pas de trace, un téléphone non plus.
+// Si ça compte, mesurer aussi côté serveur le temps entre l'affichage d'une question et la réponse.
+const KINDS = ['leave', 'back', 'copy', 'paste'];
+async function signal(res, { run, question, kind, ms }) {
+  if (!KINDS.includes(kind)) throw httpError(400, 'Signal inconnu');
+  await load(run, question);
+  const away = kind === 'back' ? Math.min(Math.max(Math.round(ms) || 0, 0), 3_600_000) : 0;
+  await sql([
+    `INSERT INTO signals (run_id, question_id, leaves, away_ms, copies, pastes) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT (run_id, question_id) DO UPDATE SET leaves = leaves + excluded.leaves, away_ms = away_ms + excluded.away_ms,
+     copies = copies + excluded.copies, pastes = pastes + excluded.pastes`,
+    run, question, Number(kind === 'leave'), away, Number(kind === 'copy'), Number(kind === 'paste'),
+  ]);
+  json(res, 200, {});
+}
+
 // { tries, done }, plus `left` (ms restantes) pendant le chrono, plus la correction une fois la question finie.
 // score vaut null pour une réponse rédigée pas encore notée.
 function outcome(q, rows, shownAt, grade = null) {
@@ -165,11 +199,12 @@ async function handle(req, res) {
   if (req.method === 'POST' && path === '/api/start') return start(res, await readJson(req));
   if (req.method === 'POST' && path === '/api/show') return show(res, await readJson(req));
   if (req.method === 'POST' && path === '/api/answer') return answer(res, await readJson(req));
+  if (req.method === 'POST' && path === '/api/signal') return signal(res, await readJson(req));
   json(res, 404, { error: 'Introuvable' });
 }
 
 await sql(...SCHEMA);
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 3001;
 createServer((req, res) =>
   handle(req, res).catch((err) => {
     if (!err.status) console.error(err);

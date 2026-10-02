@@ -42,7 +42,7 @@
             <form id="start" class="start" novalidate>
                 <label for="name">Votre prénom et votre nom</label>
                 <input id="name" class="field" name="name" autocomplete="name" maxlength="60" required aria-describedby="name-help">
-                <p class="help" id="name-help">Votre nom et vos réponses sont enregistrés pour le suivi du cours. Seul le formateur les voit.</p>
+                <p class="help" id="name-help">Votre nom, vos réponses, et ce que vous copiez ou quittez pendant les questions sont enregistrés pour le suivi du cours. Seul le formateur les voit.</p>
                 <p class="alert" id="intro-message" role="alert" hidden></p>
                 <div class="start-row">
                     <button class="btn btn-primary" id="start-btn">Commencer le quiz</button>
@@ -58,9 +58,10 @@
                     <ul>
                         <li>Juste du premier coup : 1 point. Après une erreur, un indice s'affiche et le deuxième essai vaut 0,5 point.</li>
                         <li id="rule-time">Le chrono de chaque question démarre à son affichage. Il continue si vous rechargez la page. À la fin du temps, la réponse sélectionnée ou écrite est envoyée.</li>
-                        <li id="rule-lookup">Les questions de recherche n'ont pas de chrono. Un lien ouvre la page du cours où chercher la réponse, dans un nouvel onglet.</li>
+                        <li id="rule-lookup">Les questions de recherche <span id="rule-lookup-time">n'ont pas de chrono</span>. Un lien ouvre la page du cours où chercher la réponse, dans un nouvel onglet. Quitter la page pour chercher y est prévu.</li>
                         <li id="rule-open">Une réponse rédigée s'envoie une seule fois. Le formateur la note sur 1 point.</li>
                         <li>Passer une question vaut 0 point et affiche la correction.</li>
+                        <li>Pendant une question, le collage est désactivé. Le formateur voit quand vous copiez une question et quand vous quittez la page, avec la durée.</li>
                     </ul>
                 </div>
             </details>
@@ -82,6 +83,7 @@
             <p class="kind" id="kind"></p>
             <h1 class="prompt" id="question" tabindex="-1"></h1>
             <p class="lookup" id="lookup" hidden></p>
+            <figure class="q-image" id="q-image" hidden></figure>
 
             <form id="answer-form" novalidate><div id="answer"></div></form>
             <div class="feedback" id="feedback" role="status" aria-live="polite"></div>

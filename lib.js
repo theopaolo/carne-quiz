@@ -23,6 +23,10 @@ export const SCHEMA = [
   // Avec une liste, un nom appartient au passage qui l'a pris en premier. Le formateur peut le libérer.
   [`CREATE TABLE IF NOT EXISTS claims (quiz TEXT NOT NULL, group_name TEXT NOT NULL, name TEXT NOT NULL, run_id TEXT NOT NULL,
     PRIMARY KEY (quiz, group_name, name))`],
+  // Pendant une question : sorties de la page, temps passé hors de la page, copies et collages bloqués par le navigateur
+  [`CREATE TABLE IF NOT EXISTS signals (run_id TEXT NOT NULL, question_id TEXT NOT NULL, leaves INTEGER NOT NULL DEFAULT 0,
+    away_ms INTEGER NOT NULL DEFAULT 0, copies INTEGER NOT NULL DEFAULT 0, pastes INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (run_id, question_id))`],
 ];
 
 export const rosterNames = (row) => (row ? row.names.split('\n') : []);
@@ -30,6 +34,14 @@ export const rosterNames = (row) => (row ? row.names.split('\n') : []);
 // Turso par HTTP (pipeline Hrana v2) : une requête, les instructions s'exécutent dans l'ordre.
 // Chaque instruction est [sql, ...args]. Renvoie un tableau de lignes par instruction.
 export async function sql(...statements) {
+  if (process.env.SQLITE_PATH) {
+    const { DatabaseSync } = await import('node:sqlite');
+    localDb ??= new DatabaseSync(process.env.SQLITE_PATH);
+    return statements.map(([query, ...args]) => {
+      const statement = localDb.prepare(query);
+      return statement.columns().length ? statement.all(...args) : (statement.run(...args), []);
+    });
+  }
   const base = process.env.TURSO_DATABASE_URL.replace(/^\w+:\/\//, 'https://');
   const res = await fetch(`${base}/v2/pipeline`, {
     method: 'POST',
@@ -50,6 +62,8 @@ export async function sql(...statements) {
   });
 }
 
+let localDb;
+
 function toValue(v) {
   if (v === null || v === undefined) return { type: 'null' };
   if (typeof v === 'number') return Number.isInteger(v) ? { type: 'integer', value: String(v) } : { type: 'float', value: v };
@@ -64,7 +78,8 @@ function fromValue(v) {
 
 export const TYPES = ['choice', 'multiple', 'text', 'open'];
 
-// Un deck devient un quiz : type par défaut, temps hérité du quiz sauf pour une question à chercher dans le cours. Les anciens decks de flashcards
+// Un deck devient un quiz : type par défaut, temps hérité du quiz sauf pour une question à chercher dans le cours,
+// sans chrono si elle n'a pas son propre timeLimit. Les anciens decks de flashcards
 // ({ flashcards: [{ question, choices, correct_choice_index }] }) deviennent des questions à choix.
 export function normalize(data) {
   const { flashcards, ...quiz } = data;
@@ -110,6 +125,7 @@ export function validate(quiz) {
     if (!TYPES.includes(q.type)) errors.push(`${at} : type inconnu « ${q.type} », attendu ${TYPES.join(', ')}`);
     if (q.timeLimit != null && !(Number.isFinite(q.timeLimit) && q.timeLimit >= 0)) errors.push(`${at} : timeLimit doit être un nombre de secondes, 0 pour aucun chrono`);
     if (q.lookupUrl && !(q.lookup && /^https?:\/\//.test(q.lookupUrl))) errors.push(`${at} : lookupUrl doit commencer par https:// et accompagner lookup`);
+    if (q.image && !(/^https?:\/\//.test(q.image) && q.imageAlt)) errors.push(`${at} : image doit commencer par https:// et avoir un imageAlt`);
     const options = new Set((q.options || []).map((o) => o.id));
     if (q.type === 'choice' || q.type === 'multiple') {
       if (!(q.options?.length >= 2) || options.size !== q.options.length || q.options.length > LETTERS.length)
@@ -120,6 +136,15 @@ export function validate(quiz) {
       errors.push(`${at} : correctAnswers doit lister des id d'options`);
     if (q.type === 'text' && !(q.accept?.length && q.accept.every((a) => typeof a === 'string' && core(a))))
       errors.push(`${at} : accept doit lister au moins une réponse acceptée`);
+    if (q.trap !== undefined && !(typeof q.trap === 'string' && q.trap.trim())) errors.push(`${at} : trap doit être un texte`);
+    const traps = q.trapAnswers;
+    if (traps === undefined) continue;
+    if (!(Array.isArray(traps) && traps.length && traps.every((t) => typeof t === 'string' && plain(t)))) errors.push(`${at} : trapAnswers doit lister des réponses`);
+    else if (q.type === 'choice' || q.type === 'multiple') {
+      const right = [q.correctAnswer, ...(q.correctAnswers || [])];
+      if (!traps.every((id) => options.has(id) && !right.includes(id))) errors.push(`${at} : trapAnswers doit lister des id de mauvaises options`);
+    } else if (q.type === 'text' && traps.some((t) => q.accept?.some((a) => plain(a).includes(plain(t)))))
+      errors.push(`${at} : trapAnswers ne doit pas se trouver dans une réponse acceptée`);
   }
   return errors;
 }
@@ -147,6 +172,10 @@ export function publicQuiz(quiz) {
       timeLimit: q.timeLimit,
       lookup: q.lookup,
       lookupUrl: q.lookupUrl,
+      image: q.image,
+      imageAlt: q.imageAlt,
+      // Le texte copié à la place de la question, sous un nom qui ne le trahit pas dans les outils de développement
+      copy: q.trap,
     })),
   };
 }
@@ -234,6 +263,23 @@ export function questionScore(q, rows, grade = null) {
   if (q.type === 'open') return rows.some((r) => r.choice !== SKIP) ? null : 0;
   const hit = rows.findIndex((r) => r.correct);
   return hit === 0 ? 1 : hit === 1 ? 0.5 : 0;
+}
+
+// Une question à vérifier : question copiée, collage bloqué, réponse piège, ou 3 sorties ou 10 s hors de la page.
+// Une question de recherche fait quitter la page : ses sorties ne comptent pas.
+// ponytail: seuils fixes, à ajuster ici si le formateur voit trop ou trop peu de questions signalées
+export const AWAY = { leaves: 3, ms: 10_000 };
+export function flagged(q, s) {
+  return Boolean(s && (s.copies || s.pastes || s.traps || (!q.lookup && (s.leaves >= AWAY.leaves || s.away_ms >= AWAY.ms))));
+}
+
+// Une réponse qui trahit une IA. Un texte qui contient un morceau de trapAnswers compte toujours :
+// « endou » repère « progrès endoué » comme « endouée ». Une option piège peut être choisie de bonne foi :
+// elle compte seulement si l'élève a copié la question.
+export function trapped(q, rows, copies) {
+  const traps = q.trapAnswers || [];
+  if (q.type === 'choice' || q.type === 'multiple') return copies > 0 && rows.some((r) => r.choice.split(',').some((id) => traps.includes(id)));
+  return rows.some((r) => !r.correct && r.choice !== SKIP && traps.some((t) => plain(r.choice).includes(plain(t))));
 }
 
 // La bonne réponse, montrée une fois la question finie

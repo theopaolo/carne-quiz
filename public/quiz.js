@@ -98,6 +98,7 @@ async function init() {
       : fatal('Le quiz ne se charge pas', `${err.message}. Rechargez la page dans un instant.`);
   }
   setQuiz(data);
+  back();
   run = recall(key('run'));
   if (run && quiz.status !== 'waiting') {
     try {
@@ -168,7 +169,9 @@ function showIntro() {
   $('fact-max').textContent = `Noté sur ${num(questions.length)}`;
   $('fact-types').textContent = outline(questions);
   $('rule-time').hidden = !questions.some((q) => q.timeLimit);
-  $('rule-lookup').hidden = !questions.some((q) => q.lookup);
+  const lookups = questions.filter((q) => q.lookup);
+  $('rule-lookup').hidden = !lookups.length;
+  $('rule-lookup-time').textContent = lookups.some((q) => q.timeLimit) ? 'ont plus de temps que les autres' : 'n\'ont pas de chrono';
   $('rule-open').hidden = !questions.some((q) => q.type === 'open');
   $('start').hidden = closed;
   $('closed-note').hidden = !closed;
@@ -282,7 +285,12 @@ function mount() {
     ? `<a href="${esc(q.lookupUrl)}" target="_blank" rel="noopener">${rich(q.lookup)}<span class="sr-only"> (nouvel onglet)</span></a>`
     : rich(q.lookup || '');
   $('lookup').hidden = !q.lookup;
-  $('lookup').innerHTML = `${ICON.book}<span><strong>Question de recherche, sans chrono.</strong> Cherchez la réponse dans ${source}.</span>`;
+  const time = q.timeLimit ? `${duration(q.timeLimit)} pour chercher` : 'sans chrono';
+  $('lookup').innerHTML = `${ICON.book}<span><strong>Question de recherche, ${time}.</strong> Cherchez la réponse dans ${source}.</span>`;
+  $('q-image').hidden = !q.image;
+  $('q-image').innerHTML = q.image
+    ? `<a href="${esc(q.image)}" target="_blank" rel="noopener"><img src="${esc(q.image)}" alt="${esc(q.imageAlt)}"><span class="sr-only"> (image en grand, nouvel onglet)</span></a>`
+    : '';
   const area = $('answer');
   if (q.type === 'choice' || q.type === 'multiple') {
     // Les lettres suivent l'ordre affiché, mélangé à chaque chargement
@@ -391,7 +399,7 @@ function feedback(q) {
     const wrong = q.tries.filter((t) => !t.correct);
     if (!wrong.length) return ['', ''];
     const title = q.type === 'multiple' ? 'Ce n\'est pas la bonne combinaison.'
-      : q.type === 'text' ? `« ${esc(wrong.at(-1).value)} » n'est pas la réponse attendue.`
+      : q.type === 'text' ? `"${esc(wrong.at(-1).value)}" n'est pas la réponse attendue.`
       : 'Ce n\'est pas cette réponse.';
     const hint = q.hint ? `<p class="hint"><strong>Indice :</strong> ${rich(q.hint)}</p>` : '';
     return ['retry', box(title, ICON.ko, `<p>Il vous reste un essai, qui vaut 0,5 point.</p>${hint}`)];
@@ -601,7 +609,7 @@ function answerText(q) {
   if (!q.tries.length) return q.skipped ? 'Question passée' : q.timeUp ? 'Pas de réponse, temps écoulé' : 'Pas de réponse';
   if (q.type === 'open') return `<span class="pre">${esc(q.tries[0].value)}</span>`;
   const one = (t) => (q.type === 'choice' ? label(q, t.value)
-    : q.type === 'multiple' ? t.value.split(',').map((id) => label(q, id)).join(', ') : `« ${esc(t.value)} »`);
+    : q.type === 'multiple' ? t.value.split(',').map((id) => label(q, id)).join(', ') : `"${esc(t.value)}"`);
   return q.tries.map(one).join(', puis ');
 }
 
@@ -627,6 +635,72 @@ function restart() {
   showIntro();
   $('name').focus();
 }
+
+// Une question en cours : sorties, copies et collages comptent pour elle
+const watching = () => quiz && run && !$('play').hidden && !cur().done && !cur().locked;
+
+// Le serveur compte ces signaux pour le formateur. sendBeacon part même si l'élève ferme l'onglet.
+function signal(kind, about = { run, question: cur().id }, ms = 0) {
+  navigator.sendBeacon('/api/signal', JSON.stringify({ ...about, kind, ms }));
+}
+
+// Une sortie commence quand la page perd le focus (autre onglet, autre fenêtre, panneau d'IA du navigateur)
+// et finit au retour. Elle compte pour la question affichée au départ, même si le chrono a fini entre-temps.
+// Gardée sur l'appareil : fermer l'onglet puis rouvrir le lien compte comme une sortie, avec sa durée.
+let away = null;
+function leave() {
+  if (away || !watching()) return;
+  away = { about: { run, question: cur().id }, at: Date.now() };
+  remember(key('away'), JSON.stringify(away));
+  signal('leave', away.about);
+}
+function back() {
+  away ||= JSON.parse(recall(key('away')));
+  if (!away) return;
+  signal('back', away.about, Date.now() - away.at);
+  remember(key('away'), null);
+  away = null;
+}
+window.addEventListener('blur', leave);
+window.addEventListener('focus', back);
+document.addEventListener('visibilitychange', () => (document.hidden ? leave() : back()));
+
+// Pendant une question, rien ne se colle dans la réponse sauf son propre texte, pour déplacer une phrase.
+// Copier la question ou ses options ne donne pas leur texte, sans message à l'écran, et le serveur note la copie.
+// Le presse-papiers reçoit le texte piégé de la question s'il y en a un, suivi des options avec les lettres affichées,
+// sinon un avis. Un mot-clé copié pour chercher dans le cours part tel quel : moins de 30 caractères et moins de 80 %
+// de la question.
+const COPY_OFF = 'La copie des questions est désactivée pendant le quiz.';
+let own = '';
+function guardCopy(e) {
+  if (!watching()) return;
+  if (e.target.id === 'field') return void (own = e.target.value.slice(e.target.selectionStart, e.target.selectionEnd));
+  const selection = getSelection();
+  const keyword = String(selection).trim().length < Math.min(30, 0.8 * $('question').textContent.length);
+  if (keyword || !['question', 'answer'].some((id) => selection.containsNode($(id), true))) return;
+  const q = cur();
+  const options = q.order?.map((o, i) => `${KEYS[i]}. ${o.label}`).join('\n');
+  e.clipboardData.setData('text/plain', q.copy ? [q.copy, options].filter(Boolean).join('\n\n') : COPY_OFF);
+  e.preventDefault();
+  signal('copy');
+}
+function guardPaste(e) {
+  if (!watching() || e.target.id !== 'field') return;
+  const text = (e.clipboardData || e.dataTransfer)?.getData('text/plain').replace(/\r\n/g, '\n') ?? '';
+  if (text && (text === own || e.target.value.includes(text))) return;
+  e.preventDefault();
+  signal('paste');
+  alertIn('play-message', 'Le collage est désactivé. Écrivez votre réponse.');
+}
+document.addEventListener('copy', guardCopy);
+document.addEventListener('cut', guardCopy);
+document.addEventListener('paste', guardPaste);
+document.addEventListener('drop', guardPaste);
+// Glisser la question ou son image vers un autre onglet contournerait la copie
+document.addEventListener('dragstart', (e) => {
+  const el = e.target.nodeType === Node.TEXT_NODE ? e.target.parentElement : e.target;
+  if (watching() && el.id !== 'field' && el.closest('#question, #answer, #q-image')) e.preventDefault();
+});
 
 $('start').addEventListener('submit', start);
 $('answer-form').addEventListener('submit', submit);

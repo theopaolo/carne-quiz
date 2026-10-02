@@ -39,7 +39,7 @@
       "type": "text",
       "question": "Quel attribut donne un texte de remplacement à une image ?",
       "accept": ["alt", "attribut alt"],
-      "hint": "Trois lettres, pour « alternative ».",
+      "hint": "Trois lettres, pour \"alternative\".",
       "explanation": "`alt` décrit l'image pour les lecteurs d'écran, et quand elle ne s'affiche pas."
     },
     {

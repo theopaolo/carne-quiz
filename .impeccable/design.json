@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T20:39:29.322882+00:00",
+  "title": "Design System: Carnet quiz",
+  "extensions": {
+    "colorMeta": {
+      "accent-text": {
+        "role": "primary",
+        "displayName": "Violet des actions"
+      },
+      "bg-page": {
+        "role": "neutral",
+        "displayName": "Fond de page crème"
+      },
+      "ok": {
+        "displayName": "Verdict réussi"
+      },
+      "ko": {
+        "displayName": "Verdict à revoir"
+      }
+    },
+    "motion": [
+      {
+        "name": "roulette-spin",
+        "value": "900ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Défilement simultané des deux listes, hors clavier et réduction des animations."
+      },
+      {
+        "name": "roulette-verdict",
+        "value": "250ms ease-out",
+        "purpose": "Retour d’opacité après évaluation, hors clavier et réduction des animations."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "page-mobile",
+        "value": "760px"
+      },
+      {
+        "name": "roulette-mobile",
+        "value": "600px"
+      },
+      {
+        "name": "roulette-compact",
+        "value": "(min-width: 601px) and (max-height: 900px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Plein écran",
+      "kind": "button",
+      "description": "Plein écran",
+      "html": "<button class=\"ds-button\">Plein écran</button>",
+      "css": ".ds-button {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 18px;font:600 1rem var(--font-sans);color:var(--heading);text-decoration:none;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;} .ds-button:hover:not(:disabled) {border-color:var(--text-muted);} .ds-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-button:disabled {cursor:not-allowed;opacity:.45;}",
+      "refersTo": "button"
+    },
+    {
+      "name": "Tirer au sort",
+      "kind": "button",
+      "description": "Tirer au sort",
+      "html": "<button class=\"ds-primary\">Tirer au sort</button>",
+      "css": ".ds-primary {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 18px;font:600 1rem var(--font-sans);color:var(--heading);text-decoration:none;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;color:var(--on-accent);background:var(--accent-text);border-color:var(--accent-text);} .ds-primary:hover:not(:disabled) {background:color-mix(in srgb,var(--accent-text) 86%,var(--heading));border-color:transparent;} .ds-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-primary:disabled {cursor:not-allowed;opacity:.45;}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Recommencer les tirages",
+      "kind": "button",
+      "description": "Recommencer les tirages",
+      "html": "<button class=\"ds-quiet\">Recommencer les tirages</button>",
+      "css": ".ds-quiet {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 18px;font:600 1rem var(--font-sans);color:var(--heading);text-decoration:none;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;padding:0 4px;font-weight:500;color:var(--text-muted);background:none;border-color:transparent;text-decoration:underline;text-underline-offset:3px;} .ds-quiet:hover:not(:disabled) {color:var(--heading);border-color:transparent;} .ds-quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-quiet:disabled {cursor:not-allowed;opacity:.45;}"
+    },
+    {
+      "name": "Bonne réponse",
+      "kind": "button",
+      "description": "Bonne réponse",
+      "html": "<button class=\"ds-good\">Bonne réponse</button>",
+      "css": ".ds-good {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 18px;font:600 1rem var(--font-sans);color:var(--heading);text-decoration:none;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;color:var(--ok);} .ds-good:hover:not(:disabled) {border-color:var(--text-muted);} .ds-good:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-good:disabled {cursor:not-allowed;opacity:.45;}"
+    },
+    {
+      "name": "Mauvaise réponse",
+      "kind": "button",
+      "description": "Mauvaise réponse",
+      "html": "<button class=\"ds-bad\">Mauvaise réponse</button>",
+      "css": ".ds-bad {display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 18px;font:600 1rem var(--font-sans);color:var(--heading);text-decoration:none;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;color:var(--ko);} .ds-bad:hover:not(:disabled) {border-color:var(--text-muted);} .ds-bad:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-bad:disabled {cursor:not-allowed;opacity:.45;}"
+    },
+    {
+      "name": "Champ de groupe",
+      "kind": "input",
+      "description": "Champ de groupe",
+      "html": "<label class=\"ds-label\" for=\"ds-group\">Groupe</label><input class=\"ds-input\" id=\"ds-group\" placeholder=\"Par exemple : eden-lundi\">",
+      "css": ".ds-label {font:650 .9375rem var(--font-sans);color:var(--heading);} .ds-input {display:block;width:100%;min-height:46px;padding:10px 12px;font:1.0625rem var(--font-sans);color:var(--text);background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:var(--radius);} .ds-input:focus-visible {outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent-text);}",
+      "refersTo": "input"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "description": "Navigation",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"/prof\">Carnet</a><span>Suivi des quiz</span><a class=\"ds-link\" href=\"/prof/roulette\">Quiz-roulette</a></nav>",
+      "css": ".ds-nav {display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:14px var(--sheet-pad);font:.9375rem var(--font-sans);color:var(--text-muted);} .ds-brand {font-weight:700;color:var(--heading);text-decoration:none;} .ds-link {margin-left:auto;color:var(--accent-text);text-underline-offset:3px;} .ds-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Badge de résultat",
+      "kind": "chip",
+      "description": "Badge de résultat",
+      "html": "<span class=\"ds-badge\">À évaluer</span>",
+      "css": ".ds-badge {padding:2px 8px;font:650 .8125rem var(--font-sans);border-radius:4px;background:var(--bg-sunken);color:var(--text-muted);}",
+      "refersTo": "badge"
+    },
+    {
+      "name": "Page",
+      "kind": "card",
+      "description": "Page",
+      "html": "<section class=\"ds-page\"><p>Un élève, une question.</p></section>",
+      "css": ".ds-page {max-width:calc(var(--column) + 2 * var(--sheet-pad));padding:40px var(--sheet-pad) 64px;background:var(--bg-page);color:var(--text);font:1.0625rem/1.55 var(--font-sans);border:1px solid var(--border);border-radius:10px;} @media(max-width:760px) {.ds-page {padding:28px 16px 64px;border:0;border-radius:0;}}"
+    },
+    {
+      "name": "Sélection de roulette",
+      "kind": "custom",
+      "description": "Sélection de roulette",
+      "html": "<div class=\"ds-selection\"><span>Jahel Ibo</span><span>Pourquoi fait-on un sitemap ?</span></div>",
+      "css": ".ds-selection {display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);background:var(--accent-text);color:var(--on-accent);font:700 clamp(1.125rem,1.05rem + .7vw,1.625rem)/1.2 var(--font-sans);} .ds-selection span {display:flex;align-items:center;min-height:108px;padding:12px 20px;overflow-wrap:anywhere;} @media(max-width:600px) {.ds-selection {grid-template-columns:minmax(0,34fr) minmax(0,66fr);font-size:1rem;} .ds-selection span {min-height:132px;padding:12px 10px;}}"
+    }
+  ],
+  "narrative": {
+    "overview": "Carnet conserve ses surfaces crème, ses textes denses et Inclusive Sans. Les commandes et les résultats utilisent les couleurs du quiz existant. La roulette prolonge ce système avec deux listes et une sélection commune.",
+    "rules": [
+      {
+        "name": "Verdicts",
+        "body": "Le vert (`ok`) et le rouge (`ko`) accompagnent un libellé de résultat. L’orange (`half`) appartient aux états intermédiaires du quiz. Le thème sombre remplace les valeurs des mêmes propriétés.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "conserver les couleurs et polices de Carnet dans les deux thèmes.",
+      "accompagner les verdicts d’un texte et garder le focus clavier visible.",
+      "respecter la préférence de réduction des animations."
+    ],
+    "donts": [
+      "Pas de letter-spacing, de titres en capitales, de serif ni de Tailwind."
+    ]
+  }
+}

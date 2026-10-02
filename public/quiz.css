@@ -240,6 +240,890 @@ kbd {
   max-width: 72rem;
 }
 
+.class-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.class-tools a {
+  color: inherit;
+}
+
+/* Équipes et ordre de passage, régie du formateur.
+   La composition à gauche, les équipes et le déroulé des oraux à droite. */
+.equipes-roster {
+  margin: 0;
+}
+
+.equipes-layout {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  align-items: start;
+  gap: 40px 56px;
+  margin-top: 24px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.equipes-layout h2 {
+  margin: 0;
+}
+
+.equipes-config h2 {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 16px;
+}
+
+.equipes-presets {
+  min-width: 0;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+
+.equipes-presets legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--heading);
+}
+
+.equipes-presets div {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.equipes-presets .btn {
+  padding: 0;
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.equipes-presets .btn[aria-pressed="true"] {
+  color: var(--accent-text);
+  background: var(--accent-bg);
+  border-color: var(--accent-text);
+  box-shadow: none;
+}
+
+.equipes-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.equipes-plan-row .input {
+  width: 4rem;
+  min-height: 44px;
+  padding: 8px 6px 8px 12px;
+  font-weight: 600;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.equipes-plan-row .btn-quiet {
+  width: 44px;
+  margin-left: auto;
+  padding: 0;
+}
+
+#equipes-capacity {
+  margin: 16px 0;
+}
+
+.equipes-ready {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+#equipes-draw {
+  width: 100%;
+}
+
+.equipes-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.equipes-empty {
+  max-width: 34rem;
+  margin-top: 16px;
+  color: var(--text-muted);
+}
+
+.equipes-passage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-top: 16px;
+  padding: 14px 0;
+  border-block: 1px solid var(--border);
+}
+
+#equipes-passage-status {
+  flex: 1 1 16rem;
+  margin: 0;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.equipes-results > .help {
+  margin-top: 16px;
+}
+
+.equipes-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  gap: 8px 24px;
+  margin-top: 12px;
+}
+
+.equipes-team {
+  min-width: 0;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* L'équipe à l'oral garde son texte aligné : le fond déborde dans la gouttière */
+.equipes-team[data-status="now"] {
+  margin-inline: -12px;
+  padding-inline: 12px;
+  background: var(--accent-bg);
+  border-top: 2px solid var(--accent-text);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.equipes-team[data-status="done"] {
+  color: var(--text-muted);
+}
+
+.equipes-team-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.equipes-team-head > .equipes-rank {
+  min-width: 1.1em;
+  font-size: 1.0625rem;
+}
+
+.equipes-team-head > .badge {
+  margin-left: 8px;
+}
+
+.equipes-team[data-status="done"] .equipes-rank {
+  color: inherit;
+}
+
+/* Le nom se modifie sur place : un titre au repos, un champ au survol et au focus */
+.equipes-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0 -7px;
+  padding: 8px 6px;
+  font: 650 1.0625rem/1.4 var(--font-sans);
+  color: var(--heading);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  text-overflow: ellipsis;
+}
+
+.equipes-name:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+}
+
+.equipes-name:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  background: var(--bg-surface);
+  border-color: var(--accent-text);
+}
+
+.equipes-team[data-status="done"] .equipes-name:not(:focus) {
+  color: var(--text-muted);
+}
+
+.equipes-team ul {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.equipes-team li {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 54rem) {
+  .equipes-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .equipes-config {
+    max-width: 26rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .equipes-passage .actions-row {
+    width: 100%;
+  }
+
+  .equipes-passage .actions-row > :not(.btn-quiet) {
+    flex: 1 1 auto;
+  }
+}
+
+/* Équipes, écran des élèves : toute la fenêtre, pour le projecteur. Les tailles de texte suivent la place
+   de chaque équipe (unités de conteneur), le script choisit le nombre de colonnes. */
+
+.equipes-screen {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 3vh;
+  height: 100vh;
+  height: 100dvh;
+  padding: 4vh 3vw 3vh;
+  background: var(--bg-page);
+}
+
+.equipes-screen-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 24px;
+  font-size: clamp(0.9375rem, 0.6rem + 0.9vw, 1.5rem);
+}
+
+.equipes-screen-head h1 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 650;
+}
+
+.equipes-screen-head h1 span {
+  margin-left: 0.4em;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+#equipes-status {
+  margin: 0;
+  font-weight: 650;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.equipes-stage {
+  min-height: 0;
+}
+
+.equipes-wait {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  font-size: clamp(1.25rem, 0.8rem + 2vw, 3rem);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.equipes-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr));
+  gap: 3vh 3vw;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.equipes-board > li {
+  container-type: size;
+  min-height: 0;
+  overflow: hidden;
+  border-top: 2px solid var(--border);
+}
+
+.equipes-card {
+  padding-top: 0.5em;
+  font-size: clamp(0.875rem, min(calc(100cqh / var(--lines) / 1.2), 7.5cqw), 3.25rem);
+  line-height: 1.2;
+}
+
+.equipes-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.equipes-card strong {
+  display: block;
+  margin-bottom: 0.2em;
+  font-size: 1.15em;
+  font-weight: 700;
+  color: var(--heading);
+  text-wrap: pretty;
+}
+
+.equipes-card .equipes-rank {
+  margin-right: 0.35em;
+}
+
+.equipes-card strong,
+.equipes-card li {
+  overflow-wrap: anywhere;
+}
+
+.equipes-rank {
+  font-weight: 650;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Arrivée d'un nouveau tirage : chaque nom se pose à son tour */
+.is-revealing .equipes-card strong,
+.is-revealing .equipes-card li {
+  animation: equipes-reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--i) * 35ms);
+}
+
+@keyframes equipes-reveal {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    translate: 0 0.35em;
+  }
+}
+
+/* Pendant les oraux : l'équipe à l'oral à gauche, la file de passage à droite, comme la régie de la roulette */
+.equipes-spotlight {
+  display: grid;
+  grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
+  gap: 4vw;
+  height: 100%;
+}
+
+.equipes-now,
+.equipes-side {
+  container-type: size;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.equipes-now > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.equipes-label {
+  margin: 0;
+  font-size: clamp(1rem, min(4.5cqh, 3cqw), 2rem);
+  color: var(--text-muted);
+}
+
+.equipes-label strong {
+  color: var(--heading);
+}
+
+.equipes-now-name {
+  margin: 0 0 0.3em;
+  font-size: min(13cqh, 10cqw, 6rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--heading);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.equipes-now-members {
+  margin: 0 0 0.9em;
+  padding: 0;
+  list-style: none;
+  font-size: min(calc(52cqh / max(var(--members), 3) / 1.25), 7cqw, 4rem);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.equipes-queue {
+  display: grid;
+  grid-auto-rows: calc(100cqh / max(var(--count), 6));
+  align-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: clamp(0.875rem, min(calc(100cqh / max(var(--count), 6) * 0.42), 6cqw), 2.25rem);
+}
+
+.equipes-queue li {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  min-width: 0;
+  padding-inline: 0.6em;
+  border-top: 1px solid var(--border);
+}
+
+.equipes-queue .equipes-rank {
+  min-width: 1.4em;
+  text-align: right;
+}
+
+.equipes-queue-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.equipes-queue em {
+  margin-left: auto;
+  font-size: 0.75em;
+  font-style: normal;
+  font-weight: 650;
+  color: var(--accent-text);
+}
+
+.equipes-queue [data-status="done"],
+.equipes-queue [data-status="done"] .equipes-rank {
+  color: var(--text-muted);
+}
+
+.equipes-queue [data-status="now"] {
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent-text);
+  border-color: transparent;
+}
+
+.equipes-queue [data-status="now"] .equipes-rank {
+  color: inherit;
+}
+
+::view-transition-group(*) {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-aspect-ratio: 4/5) {
+  .equipes-spotlight {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+/* Quiz-roulette, régie du formateur */
+
+.roulette-heading,
+.roulette-actions,
+.roulette-toolbar,
+.roulette-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.roulette-heading {
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.roulette-heading .lead {
+  margin: 0;
+}
+
+.roulette-now,
+.roulette-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+}
+
+.roulette-now {
+  gap: 20px 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+.roulette-label {
+  margin: 0 0 6px;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+#roulette-question-topic {
+  margin-left: 8px;
+  color: var(--accent-text);
+}
+
+.roulette-student,
+.roulette-question {
+  margin: 0;
+  color: var(--heading);
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.roulette-student {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  font-weight: 700;
+}
+
+.roulette-question {
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  font-weight: 600;
+}
+
+.roulette-now .is-empty {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.roulette-answer {
+  margin-top: 24px;
+}
+
+.roulette-answer p:last-child {
+  max-width: 62ch;
+  margin: 0;
+}
+
+.roulette-actions {
+  margin-top: 32px;
+}
+
+.roulette-actions > .btn-primary {
+  min-width: 172px;
+}
+
+.roulette-grading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn.roulette-good,
+.roulette-correct {
+  color: var(--ok);
+}
+
+.btn.roulette-bad,
+.roulette-incorrect {
+  color: var(--ko);
+}
+
+#roulette-feedback {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+#roulette-progress {
+  margin: 0 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.roulette-status {
+  margin-top: 16px;
+}
+
+.rules.roulette-settings {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+#roulette-settings-summary {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.roulette-toolbar {
+  align-items: end;
+}
+
+.roulette-toolbar .field-group {
+  flex: 0 1 16rem;
+}
+
+.roulette-presence {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0 16px;
+  min-width: 0;
+  margin: 24px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.roulette-presence legend {
+  margin-bottom: 4px;
+  padding: 0;
+  font-weight: 650;
+  color: var(--heading);
+}
+
+.roulette-presence label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.roulette-presence input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-text);
+}
+
+.roulette-roster,
+.group-picker {
+  margin-top: 24px;
+}
+
+/* Le champ libre n'apparaît que pour « Nouveau groupe… » */
+.group-picker:has([name="groupe"] option:checked:not([value=""])) .group-picker-new {
+  display: none;
+}
+
+.roulette-roster > label {
+  font-weight: 650;
+  color: var(--heading);
+}
+
+.roulette-roster textarea {
+  margin-top: 8px;
+}
+
+.roulette-roster > .btn {
+  margin-top: 12px;
+}
+
+.roulette-discarded {
+  margin-top: 24px;
+}
+
+#roulette-discarded {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#roulette-discarded li {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.roulette-bottom {
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.rules.roulette-history {
+  flex: 1 1 300px;
+  margin-top: 0;
+}
+
+.roulette-history ol {
+  margin: 8px 0 0;
+  padding-left: 24px;
+}
+
+.roulette-history li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.roulette-history li > span {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .roulette-heading {
+    align-items: start;
+  }
+
+  .roulette-now {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .roulette-actions > .btn-primary {
+    width: 100%;
+  }
+
+  .roulette-grading {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .roulette-grading .btn {
+    padding: 8px;
+    font-size: 0.875rem;
+  }
+
+  .roulette-grading .btn-quiet {
+    grid-column: 1 / -1;
+  }
+
+  #roulette-progress {
+    margin-left: 0;
+  }
+
+  .roulette-presence {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Quiz-roulette, écran des élèves : toute la fenêtre, pour le projecteur */
+
+.roulette-screen {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  height: 100vh;
+  height: 100dvh;
+  padding: 4vh 3vw 3vh;
+  background: var(--bg-page);
+}
+
+.roulette-labels {
+  padding-bottom: 1.5vh;
+  font-size: clamp(0.9375rem, 0.6rem + 0.9vw, 1.5rem);
+  color: var(--text-muted);
+}
+
+.roulette-labels > span,
+.roulette-slot,
+.roulette-verdict {
+  padding-inline: clamp(12px, 1.6vw, 40px);
+}
+
+.roulette-stage {
+  --roulette-band: var(--accent-text);
+  container-type: size;
+}
+
+.roulette-stage[data-verdict="good"] {
+  --roulette-band: var(--ok);
+}
+
+.roulette-stage[data-verdict="bad"] {
+  --roulette-band: var(--ko);
+}
+
+/* Cinq lignes par rouleau. Celles du bord s'effacent comme sur un tambour. */
+.roulette-window {
+  --roulette-row: 20cqh;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent);
+}
+
+.roulette-window::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(2 * var(--roulette-row)) 0 auto;
+  height: var(--roulette-row);
+  background: var(--roulette-band);
+  transition: background-color 0.25s ease-out;
+}
+
+.roulette-window.is-spinning {
+  --roulette-band: var(--accent-bg);
+}
+
+.roulette-reel {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roulette-slot {
+  display: flex;
+  align-items: center;
+  height: var(--roulette-row);
+  overflow: hidden;
+  font-size: clamp(1rem, min(calc(var(--roulette-row) * 0.26), 3.2vw), 4rem);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--text-muted);
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.roulette-slot.is-selected {
+  font-weight: 700;
+  color: var(--on-accent);
+}
+
+.is-spinning .roulette-slot {
+  color: var(--text);
+}
+
+.roulette-verdict {
+  min-height: 1.3em;
+  margin: 2vh 0 0;
+  font-size: clamp(1.125rem, 0.7rem + 1.4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.roulette-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-top: 1vh;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.roulette-bar p {
+  margin: 0;
+}
+
+.roulette-bar kbd {
+  margin-right: 4px;
+}
+
+.roulette-bar kbd:not(:first-child) {
+  margin-left: 12px;
+}
+
+:root:fullscreen .roulette-bar {
+  display: none;
+}
+
 .loading {
   color: var(--text-muted);
 }
@@ -633,6 +1517,21 @@ textarea.field {
 .lookup .icon {
   margin-top: 0.2em;
   color: var(--accent-text);
+}
+
+/* Assez petite pour laisser les réponses à l'écran. Un clic l'ouvre en grand. */
+.q-image {
+  margin: -12px 0 24px;
+}
+
+.q-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 22rem;
+  width: auto;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 .prompt:focus,
@@ -1252,6 +2151,27 @@ td.cell {
 
 .s-pending a {
   color: inherit;
+}
+
+/* Question à vérifier : un coin rouge, comme une note dans un tableur. Le détail s'affiche au survol. */
+.cell.is-flag {
+  background-image: linear-gradient(225deg, var(--ko) 7px, transparent 7px);
+}
+
+.alerts {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.alerts.is-flag {
+  font-weight: 650;
+  color: var(--ko);
+}
+
+.grade-who .alerts {
+  display: block;
+  white-space: normal;
 }
 
 .legend {

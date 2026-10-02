@@ -24,6 +24,25 @@ export function balanced(students, size) {
   return [{ count: big, size: small + 1 }, { count: count - big, size: small }].filter((row) => row.count);
 }
 
+// Après le tirage, les équipes suivent les présents : un absent quitte son équipe, une équipe vide quitte
+// l'ordre de passage et l'équipe à l'oral le reste. La composition reprend les tailles des équipes.
+export function prune(state, present) {
+  for (let i = state.teams.length - 1; i >= 0; i--) {
+    const team = state.teams[i];
+    team.members = team.members.filter((n) => present.includes(n));
+    if (team.members.length) continue;
+    state.teams.splice(i, 1);
+    const rank = state.order.indexOf(i);
+    if (rank >= 0) state.order.splice(rank, 1);
+    if (rank >= 0 && rank < state.passage) state.passage--;
+    state.order = state.order.map((j) => (j > i ? j - 1 : j));
+  }
+  if (!state.order.length) state.passage = -1;
+  const sizes = state.teams.map((t) => t.members.length);
+  if (sizes.length) state.plan = [...new Set(sizes)].sort((a, b) => b - a).map((size) => ({ count: sizes.filter((n) => n === size).length, size }));
+  return state;
+}
+
 export function makeTeams(names, plan, random = Math.random) {
   if (!names.length || new Set(names).size !== names.length || places(plan) !== names.length) {
     throw new Error('Le nombre de places doit correspondre au nombre d’élèves présents.');

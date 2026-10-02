@@ -444,12 +444,30 @@ kbd {
   text-overflow: ellipsis;
 }
 
-.equipes-name:hover {
+/* Un élève change d'équipe sur place : son nom au repos, un menu au survol et au focus */
+.equipes-member {
+  max-width: calc(100% + 14px);
+  margin: 0 -7px;
+  padding: 0 6px;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  appearance: none;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.equipes-name:hover,
+.equipes-member:hover {
   background: var(--bg-surface);
   border-color: var(--border-strong);
 }
 
-.equipes-name:focus-visible {
+.equipes-name:focus-visible,
+.equipes-member:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 0;
   background: var(--bg-surface);
@@ -468,6 +486,18 @@ kbd {
 
 .equipes-team li {
   overflow-wrap: anywhere;
+}
+
+.equipes-unplaced {
+  border-top: 2px solid var(--half);
+}
+
+.equipes-unplaced h3 {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  color: var(--half);
 }
 
 @media (max-width: 54rem) {

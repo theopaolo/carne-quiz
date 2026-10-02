@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { balanced, makeTeams, places, shuffle } from './public/equipes-draw.js';
+import { balanced, makeTeams, places, prune, shuffle } from './public/equipes-draw.js';
 
 test('équipes : répartition équilibrée par taille maximale', () => {
   assert.deepEqual(balanced(22, 3), [{ count: 6, size: 3 }, { count: 2, size: 2 }]);
@@ -36,4 +36,21 @@ test('équipes : tailles choisies, chaque présent une fois et ordre indépendan
   }
   assert.throws(() => makeTeams(['Ada', 'Ada'], [{ count: 1, size: 2 }]));
   assert.deepEqual(makeTeams(['Ada'], [{ count: 1, size: 1 }])[0].members, ['Ada']);
+});
+
+test('équipes : après le tirage, les équipes suivent les présents', () => {
+  const state = { plan: [{ count: 3, size: 2 }], excluded: [], order: [2, 0, 1], passage: 1, teams: [
+    { name: 'A', members: ['Ada', 'Bob'] }, { name: 'B', members: ['Cy'] }, { name: 'C', members: ['Dan', 'Eve'] }] };
+  prune(state, ['Ada', 'Bob', 'Dan', 'Eve']);
+  assert.deepEqual(state.teams.map((t) => t.name), ['A', 'C']);
+  assert.deepEqual(state.order, [1, 0]);
+  assert.equal(state.teams[state.order[state.passage]].name, 'A');
+  assert.deepEqual(state.plan, [{ count: 2, size: 2 }]);
+  prune(state, ['Ada', 'Bob', 'Dan']);
+  assert.deepEqual(state.plan, [{ count: 1, size: 2 }, { count: 1, size: 1 }]);
+  prune(state, ['Ada', 'Bob']);
+  assert.deepEqual(state.order, [0]);
+  assert.equal(state.passage, 0);
+  prune(state, []);
+  assert.deepEqual([state.teams, state.order, state.passage], [[], [], -1]);
 });

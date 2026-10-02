@@ -1,4 +1,4 @@
-import { balanced, makeTeams, places, shuffle, teamName } from './equipes-draw.js';
+import { balanced, makeTeams, places, prune, shuffle, teamName } from './equipes-draw.js';
 
 // La régie (/prof/equipes) et l'écran des élèves (/prof/equipes/ecran) partagent le tirage de la classe,
 // enregistré dans le navigateur. Chaque page relit le tirage quand l'autre l'enregistre.
@@ -49,11 +49,20 @@ function session({ group, names }) {
       }
     },
     drawTeams() {
-      Object.assign(s.state, { teams: makeTeams(s.present(), s.state.plan), order: [], passage: -1 });
+      Object.assign(s.state, { teams: makeTeams(s.present(), s.state.plan), order: [], passage: -1, drawn: Date.now() });
       s.save();
     },
     drawOrder() {
       Object.assign(s.state, { order: shuffle(s.state.teams.map((_, i) => i)), passage: -1 });
+      s.save();
+    },
+    // Place un élève dans l'équipe `to`, ou le note absent si `to` vaut -1
+    move(name, to) {
+      const target = s.state.teams[to];
+      for (const team of s.state.teams) team.members = team.members.filter((n) => n !== name);
+      if (target) target.members.push(name);
+      else s.state.excluded.push(name);
+      prune(s.state, s.present());
       s.save();
     },
     step(delta) {
@@ -87,10 +96,6 @@ function session({ group, names }) {
         if (new Set(members).size !== members.length) throw new Error('Élève en double');
         s.state = value;
         s.state.excluded = s.state.excluded.filter((n) => names.includes(n));
-        if (members.some((n) => !names.includes(n))) {
-          Object.assign(s.state, { teams: [], order: [], passage: -1 });
-          message = 'La liste de classe a changé. Refaites le tirage pour utiliser la nouvelle liste.';
-        }
       }
     } catch (err) {
       message = err.name === 'SecurityError'
@@ -179,11 +184,9 @@ function desk(s) {
     for (const button of presets) {
       button.setAttribute('aria-pressed', String(active.length > 0 && plan === JSON.stringify(balanced(active.length, Number(button.dataset.size)))));
     }
-    const members = s.state.teams.flatMap((t) => t.members);
     const sizes = s.state.plan.flatMap((r) => Array.from({ length: Math.max(0, Math.min(500, r.count)) }, () => r.size)).sort((a, b) => a - b);
     const drawnSizes = s.state.teams.map((t) => t.members.length).sort((a, b) => a - b);
-    el('stale').hidden = !drawn || (members.length === active.length && active.every((n) => members.includes(n))
-      && JSON.stringify(sizes) === JSON.stringify(drawnSizes));
+    el('stale').hidden = !drawn || JSON.stringify(sizes) === JSON.stringify(drawnSizes);
   }
 
   function renderPassage() {
@@ -200,11 +203,37 @@ function desk(s) {
     el('order-draw').className = `btn ${order.length ? 'btn-quiet' : 'btn-primary'}`;
   }
 
+  // Le nom de l'élève ouvre la liste des autres équipes. `team` vaut -1 pour un présent sans équipe.
+  function member(name, team) {
+    const li = document.createElement('li');
+    const select = document.createElement('select');
+    select.className = 'equipes-member';
+    select.id = `equipes-member-${s.names.indexOf(name)}`;
+    select.setAttribute('aria-label', team < 0 ? 'Choisir une équipe' : 'Changer d’équipe');
+    const group = document.createElement('optgroup');
+    group.label = team < 0 ? 'Placer dans' : 'Déplacer vers';
+    for (const i of s.ordered()) if (i !== team) group.append(new Option(s.state.teams[i].name, i));
+    select.append(new Option(name, '', true, true), group, new Option('Absent', -1));
+    select.options[0].disabled = true;
+    select.addEventListener('change', () => {
+      const target = s.state.teams[select.value];
+      s.move(name, Number(select.value));
+      renderPresence();
+      renderPlan();
+      renderTeams();
+      announce(target ? `${name} rejoint ${target.name}.` : `${name} retiré des présents.`);
+    });
+    li.append(select);
+    return li;
+  }
+
   function renderTeams() {
     const focused = el('list').contains(document.activeElement) ? document.activeElement.id : '';
     const drawn = s.state.teams.length > 0;
     el('empty').hidden = drawn;
     el('fun').hidden = el('names-help').hidden = !drawn;
+    const placed = s.state.teams.flatMap((t) => t.members);
+    const unplaced = drawn ? s.present().filter((n) => !placed.includes(n)) : [];
     el('list').replaceChildren(...s.ordered().map((i) => {
       const team = s.state.teams[i];
       const rank = s.state.order.indexOf(i);
@@ -238,11 +267,7 @@ function desk(s) {
       });
       input.addEventListener('blur', () => { input.value = team.name; });
       const list = document.createElement('ul');
-      for (const member of team.members) {
-        const li = document.createElement('li');
-        li.textContent = member;
-        list.append(li);
-      }
+      list.append(...team.members.map((name) => member(name, i)));
       head.append(label, input);
       if (status) {
         const badge = document.createElement('span');
@@ -253,7 +278,18 @@ function desk(s) {
       card.append(head, list);
       return card;
     }));
-    if (focused) document.getElementById(focused)?.focus();
+    if (unplaced.length) {
+      const card = document.createElement('div');
+      card.className = 'equipes-team equipes-unplaced';
+      const title = document.createElement('h3');
+      title.textContent = 'Sans équipe';
+      const list = document.createElement('ul');
+      list.append(...unplaced.map((name) => member(name, -1)));
+      card.append(title, list);
+      el('list').prepend(card);
+    }
+    // Un élève noté absent quitte la liste : le focus revient au titre
+    if (focused) (document.getElementById(focused) ?? el('title')).focus();
     renderPassage();
     update();
   }
@@ -275,8 +311,10 @@ function desk(s) {
   }
   el('presence').addEventListener('change', () => {
     s.state.excluded = [...el('presence').querySelectorAll('input:not(:checked)')].map((input) => input.value);
+    prune(s.state, s.present());
     s.save();
-    update();
+    renderPlan();
+    renderTeams();
   });
   el('form').addEventListener('submit', (event) => {
     event.preventDefault();
@@ -321,6 +359,10 @@ function desk(s) {
     renderPlan();
     transition(renderTeams);
   };
+  if (s.state.teams.length) {
+    prune(s.state, s.present());
+    s.save();
+  }
   renderPresence();
   renderPlan();
   renderTeams();
@@ -331,7 +373,6 @@ function desk(s) {
 function screen(s) {
   let shown = null;
   let refit = () => {};
-  const composition = () => JSON.stringify(s.state.teams.map((t) => t.members));
 
   // Garde le nombre de colonnes qui donne le plus grand texte. Une équipe occupe environ 13 em de large
   // et `lines` lignes de 1,2 em de haut, comme dans le calcul de la taille du texte en CSS.
@@ -422,8 +463,8 @@ function screen(s) {
   function render() {
     const { teams, order, passage } = s.state;
     const live = passage >= 0 && passage < order.length;
-    const reveal = shown !== null && composition() !== shown && !reduced.matches;
-    shown = composition();
+    const reveal = shown !== null && s.state.drawn !== shown && !reduced.matches;
+    shown = s.state.drawn;
     el('status').textContent = !teams.length ? '' : !order.length ? plural(teams.length, 'équipe')
       : live ? `À l’oral, passage ${passage + 1} sur ${order.length}` : passage < 0 ? 'Ordre de passage' : 'Oraux terminés';
     if (!teams.length) {
@@ -433,8 +474,8 @@ function screen(s) {
     else board(reveal);
   }
 
-  // Un nouveau tirage d'équipes s'affiche nom par nom, un changement d'ordre ou de passage glisse
-  s.onchange = () => (composition() !== shown ? render() : transition(render));
+  // Un nouveau tirage d'équipes s'affiche nom par nom, un élève déplacé ou un changement d'ordre glisse
+  s.onchange = () => (s.state.drawn !== shown ? render() : transition(render));
   addEventListener('resize', () => refit());
   addEventListener('keydown', (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;

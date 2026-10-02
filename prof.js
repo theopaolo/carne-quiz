@@ -235,7 +235,7 @@ ${groupForm}`));
   <summary>Liste et présences <span id="equipes-present-count"></span></summary>
   <div class="rules-body">
     <fieldset class="roulette-presence" id="equipes-presence"><legend>Élèves présents</legend></fieldset>
-    <p class="help">Décochez les absents avant le tirage.</p>
+    <p class="help">Décochez les absents. Après le tirage, un absent quitte son équipe et un élève coché attend dans « Sans équipe ».</p>
     <form class="roulette-roster" method="post" action="/prof/eleves">
       <input type="hidden" name="groupe" value="${esc(group)}"><input type="hidden" name="retour" value="equipes">
       <label for="equipes-names">Liste de la classe, un nom par ligne</label>
@@ -263,7 +263,7 @@ ${groupForm}`));
   </section>
   <section class="equipes-results" aria-labelledby="equipes-title">
     <div class="equipes-heading"><h2 id="equipes-title" tabindex="-1">Les équipes</h2><button class="btn" type="button" id="equipes-fun" hidden>Noms avec emojis</button></div>
-    <p class="help" id="equipes-stale" role="status" hidden>Les réglages ou les présences ont changé. Refaites le tirage pour les appliquer aux équipes.</p>
+    <p class="help" id="equipes-stale" role="status" hidden>La composition a changé. Refaites le tirage pour l’appliquer aux équipes.</p>
     <div class="equipes-empty" id="equipes-empty">
       <p>Les équipes s’afficheront ici. Choisissez une taille d’équipe, puis tirez les équipes.</p>
       <p>Pour faire le tirage devant la classe, ouvrez d’abord l’écran des élèves sur le projecteur.</p>
@@ -276,7 +276,7 @@ ${groupForm}`));
         <button class="btn" type="button" id="equipes-order-draw">Tirer l’ordre de passage</button>
       </div>
     </div>
-    <p class="help" id="equipes-names-help" hidden>Cliquez sur le nom d’une équipe pour le modifier.</p>
+    <p class="help" id="equipes-names-help" hidden>Cliquez sur le nom d’une équipe pour le modifier, ou sur un élève pour le changer d’équipe.</p>
     <div class="equipes-list" id="equipes-list"></div>
   </section>
 </div>

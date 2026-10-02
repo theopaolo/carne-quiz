@@ -41,6 +41,7 @@ Ouvrez « Équipes » depuis `/prof`, ou depuis une séance de quiz. Choisissez 
 - Décochez les absents dans « Liste et présences ».
 - Choisissez une taille d’équipe, de 2 à 5. Les présents sont répartis en équipes égales à un élève près : 22 présents par 3 donnent 6 équipes de 3 et 2 équipes de 2. Chaque ligne reste modifiable. Le tirage est disponible lorsque le total des places correspond aux présents.
 - Tirez les équipes. Chaque élève présent apparaît une fois. Les noms commencent à Groupe A, puis Groupe B, etc. Cliquez sur un nom pour le modifier, ou proposez des noms avec emojis.
+- Ajustez les équipes après le tirage. Cliquez sur un élève pour le déplacer dans une autre équipe ou le noter absent. Décocher un élève dans « Liste et présences » le retire de son équipe. Un élève coché après le tirage attend dans « Sans équipe ». Une équipe vidée disparaît de l’ordre de passage.
 - Tirez l’ordre de passage pour les oraux. Un nouveau tirage de l’ordre conserve les équipes et leurs noms.
 - Pendant les oraux, « Commencer les oraux » puis « Équipe suivante » indiquent l’équipe à l’oral et la suivante.
 
